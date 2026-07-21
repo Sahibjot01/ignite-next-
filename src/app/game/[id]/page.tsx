@@ -39,48 +39,8 @@ export default async function GameDetailPage(props: PageProps) {
     getDealsByGameTitle(game.name),
   ]);
 
-  // Handle price snapshots database logging
-  const supabase = createSupabaseAdminClient();
-  
-  if (dealsInfo && dealsInfo.deals.length > 0) {
-    const cheapestDeal = dealsInfo.deals[0];
-    
-    try {
-      // Find the last snapshot for this game
-      const { data: lastSnapshot } = await supabase
-        .from("price_snapshots")
-        .select("*")
-        .eq("game_id", game.id)
-        .order("recorded_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      const todayStr = new Date().toISOString().split("T")[0];
-      const lastRecordedDateStr = lastSnapshot
-        ? new Date(lastSnapshot.recorded_at).toISOString().split("T")[0]
-        : null;
-
-      // Deduplicate: Insert a new snapshot only if price changes, or it's a new day
-      if (
-        !lastSnapshot ||
-        Number(lastSnapshot.price) !== cheapestDeal.price ||
-        lastRecordedDateStr !== todayStr
-      ) {
-        await supabase.from("price_snapshots").insert({
-          game_id: game.id,
-          cheapshark_id: dealsInfo.gameID,
-          store_name: cheapestDeal.storeName,
-          price: cheapestDeal.price,
-          normal_price: cheapestDeal.normalPrice,
-          is_on_sale: cheapestDeal.isOnSale,
-        });
-      }
-    } catch (dbError) {
-      console.error("Failed to record price snapshot:", dbError);
-    }
-  }
-
   // Fetch all historical price snapshots for the chart
+  const supabase = createSupabaseAdminClient();
   const { data: snapshotsData } = await supabase
     .from("price_snapshots")
     .select("*")
