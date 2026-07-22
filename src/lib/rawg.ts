@@ -1,5 +1,6 @@
 const RAWG_BASE_URL = "https://api.rawg.io/api";
 const RAWG_API_KEY = process.env.RAWG_API_KEY;
+const PS_PLATFORM_IDS = "18,187";
 
 export interface Platform {
   id: number;
@@ -53,7 +54,11 @@ export const getNextYear = () => {
 };
 
 // Generic Fetcher with ISR caching
-async function fetchRawg<T>(endpoint: string, params: Record<string, string> = {}, revalidate = 3600): Promise<T> {
+async function fetchRawg<T>(
+  endpoint: string,
+  params: Record<string, string> = {},
+  revalidate = 3600,
+): Promise<T> {
   if (!RAWG_API_KEY) {
     throw new Error("Missing RAWG_API_KEY in environment variables");
   }
@@ -64,7 +69,7 @@ async function fetchRawg<T>(endpoint: string, params: Record<string, string> = {
   });
 
   const url = `${RAWG_BASE_URL}/${endpoint}?${queryParams.toString()}`;
-  
+
   const res = await fetch(url, {
     next: { revalidate },
   });
@@ -82,6 +87,7 @@ export async function getPopularGames(): Promise<Game[]> {
     dates: `${getLastYear()},${getCurrentDate()}`,
     ordering: "-rating",
     page_size: "10",
+    platforms: PS_PLATFORM_IDS,
   });
   return data.results;
 }
@@ -91,6 +97,7 @@ export async function getUpcomingGames(): Promise<Game[]> {
     dates: `${getCurrentDate()},${getNextYear()}`,
     ordering: "-added",
     page_size: "10",
+    platforms: PS_PLATFORM_IDS,
   });
   return data.results;
 }
@@ -100,15 +107,21 @@ export async function getNewGames(): Promise<Game[]> {
     dates: `${getLastYear()},${getCurrentDate()}`,
     ordering: "-released",
     page_size: "10",
+    platforms: PS_PLATFORM_IDS,
   });
   return data.results;
 }
 
 export async function searchGames(query: string): Promise<Game[]> {
-  const data = await fetchRawg<RawgResponse<Game>>("games", {
-    search: query,
-    page_size: "9",
-  }, 60); // Cache search for 1 minute
+  const data = await fetchRawg<RawgResponse<Game>>(
+    "games",
+    {
+      search: query,
+      page_size: "9",
+      platforms: PS_PLATFORM_IDS,
+    },
+    60,
+  ); // Cache search for 1 minute
   return data.results;
 }
 
@@ -116,7 +129,9 @@ export async function getGameDetails(id: string | number): Promise<Game> {
   return fetchRawg<Game>(`games/${id}`);
 }
 
-export async function getGameScreenshots(id: string | number): Promise<GameScreenshot[]> {
+export async function getGameScreenshots(
+  id: string | number,
+): Promise<GameScreenshot[]> {
   interface ScreenshotsResponse {
     results: GameScreenshot[];
   }
@@ -125,13 +140,16 @@ export async function getGameScreenshots(id: string | number): Promise<GameScree
 }
 
 // Image Resizer (Ported from old utility)
-export const imageResizeURL = (imageLink: string | null | undefined, size: number): string => {
+export const imageResizeURL = (
+  imageLink: string | null | undefined,
+  size: number,
+): string => {
   if (!imageLink) return "";
-  
+
   const newURL = imageLink.match(/media\/screenshots/)
     ? imageLink.replace(
         "/media/screenshots",
-        `/media/resize/${size}/-/screenshots/`
+        `/media/resize/${size}/-/screenshots/`,
       )
     : imageLink.replace("/media/games", `/media/resize/${size}/-/games/`);
   return newURL;
