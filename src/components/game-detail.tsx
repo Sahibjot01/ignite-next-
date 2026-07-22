@@ -2,7 +2,15 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Star, Heart, ExternalLink, Sparkles, Check, Plus, Loader2 } from "lucide-react";
+import {
+  Star,
+  Heart,
+  ExternalLink,
+  Sparkles,
+  Check,
+  Plus,
+  Loader2,
+} from "lucide-react";
 import { useUser, SignInButton } from "@clerk/nextjs";
 import { motion, type Variants } from "motion/react";
 import { Game, GameScreenshot, imageResizeURL } from "@/lib/rawg";
@@ -23,6 +31,12 @@ interface GameDetailProps {
   snapshots: Snapshot[];
   initialPriceAlert: PriceAlert | null;
 }
+const getPlatformIcon = (platformName: string) => {
+  const name = platformName.toLowerCase();
+  return name.includes("playstation")
+    ? "/icons/playstation.svg"
+    : "/icons/gamepad.svg";
+};
 
 export default function GameDetail({
   game,
@@ -43,12 +57,16 @@ export default function GameDetail({
     setIsWishlisted(!isWishlisted);
 
     try {
-      const res = await toggleWishlist(game.id, game.name, game.background_image);
+      const res = await toggleWishlist(
+        game.id,
+        game.name,
+        game.background_image,
+      );
       if (res.success) {
         toast.success(
           res.added
             ? `Added ${game.name} to wishlist!`
-            : `Removed ${game.name} from wishlist.`
+            : `Removed ${game.name} from wishlist.`,
         );
       } else {
         setIsWishlisted(isWishlisted);
@@ -62,16 +80,6 @@ export default function GameDetail({
     }
   };
 
-  const getPlatformIcon = (platformName: string) => {
-    const name = platformName.toLowerCase();
-    if (name.includes("playstation")) return "/icons/playstation.svg";
-    if (name.includes("xbox")) return "/icons/xbox.svg";
-    if (name.includes("pc") || name.includes("steam")) return "/icons/steam.svg";
-    if (name.includes("nintendo") || name.includes("switch")) return "/icons/nintendo.svg";
-    if (name.includes("ios") || name.includes("apple") || name.includes("mac")) return "/icons/apple.svg";
-    return "/icons/gamepad.svg";
-  };
-
   const renderStars = (rating: number) => {
     const stars = [];
     const roundedRating = Math.round(rating);
@@ -80,9 +88,11 @@ export default function GameDetail({
         <Star
           key={i}
           className={`h-4.5 w-4.5 ${
-            i <= roundedRating ? "text-amber-400 fill-amber-400" : "text-zinc-700"
+            i <= roundedRating
+              ? "text-amber-400 fill-amber-400"
+              : "text-zinc-700"
           }`}
-        />
+        />,
       );
     }
     return stars;
@@ -120,7 +130,10 @@ export default function GameDetail({
               </Badge>
             )}
             {game.released && (
-              <Badge variant="outline" className="border-zinc-800 text-zinc-400">
+              <Badge
+                variant="outline"
+                className="border-zinc-800 text-zinc-400"
+              >
                 Released: {game.released}
               </Badge>
             )}
@@ -132,25 +145,38 @@ export default function GameDetail({
           <div className="flex flex-wrap items-center justify-between gap-4 border-y border-zinc-900 py-4">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-zinc-400">Rating:</span>
-              <div className="flex items-center">{renderStars(game.rating)}</div>
+              <div className="flex items-center">
+                {renderStars(game.rating)}
+              </div>
               <span className="text-xs font-semibold text-zinc-500 pl-1">
                 ({game.ratings_count} votes)
               </span>
             </div>
 
             <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-zinc-400">Platforms:</span>
+              <span className="text-sm font-medium text-zinc-400">
+                Platforms:
+              </span>
               <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-900 px-3 py-1.5 rounded-full">
-                {game.platforms?.slice(0, 5).map((data) => (
-                  <div key={data.platform.id} className="relative h-4.5 w-4.5 text-zinc-400" title={data.platform.name}>
-                    <Image
-                      src={getPlatformIcon(data.platform.name)}
-                      alt={data.platform.name}
-                      fill
-                      className="object-contain filter invert opacity-80"
-                    />
-                  </div>
-                ))}
+                {game.platforms
+                  ?.filter((data) =>
+                    data.platform.name.toLowerCase().includes("playstation"),
+                  )
+                  .slice(0, 5)
+                  .map((data) => (
+                    <div
+                      key={data.platform.id}
+                      className="relative h-4.5 w-4.5 text-zinc-400"
+                      title={data.platform.name}
+                    >
+                      <Image
+                        src={getPlatformIcon(data.platform.name)}
+                        alt={data.platform.name}
+                        fill
+                        className="object-contain filter invert opacity-80"
+                      />
+                    </div>
+                  ))}
               </div>
             </div>
           </div>
@@ -176,7 +202,7 @@ export default function GameDetail({
               {screenshots.map((screen) => (
                 <div
                   key={screen.id}
-                  className="relative aspect-[16/10] overflow-hidden rounded-xl bg-zinc-900 border border-zinc-900 shadow-md group hover:border-zinc-800 transition-colors"
+                  className="relative aspect-16/10 overflow-hidden rounded-xl bg-zinc-900 border border-zinc-900 shadow-md group hover:border-zinc-800 transition-colors"
                 >
                   <Image
                     src={imageResizeURL(screen.image, 1280)}
@@ -197,10 +223,13 @@ export default function GameDetail({
         {/* Main Cover Image */}
         <motion.div
           variants={itemVariants}
-          className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-zinc-900 border border-zinc-900 shadow-xl"
+          className="relative aspect-16/10 overflow-hidden rounded-2xl bg-zinc-900 border border-zinc-900 shadow-xl"
         >
           <Image
-            src={imageResizeURL(game.background_image, 1280) || "/icons/gamepad.svg"}
+            src={
+              imageResizeURL(game.background_image, 1280) ||
+              "/icons/gamepad.svg"
+            }
             alt={game.name}
             fill
             priority
@@ -253,7 +282,7 @@ export default function GameDetail({
                 <Sparkles className="h-5 w-5 text-amber-400" />
                 <h3 className="text-base font-bold">Best PC Store Deals</h3>
               </div>
-              
+
               {!dealsInfo || dealsInfo.deals.length === 0 ? (
                 <p className="text-zinc-500 text-xs text-center py-4">
                   No active store deals found.
@@ -313,10 +342,7 @@ export default function GameDetail({
 
         {/* Price History Chart */}
         <motion.div variants={itemVariants}>
-          <PriceChart
-            snapshots={snapshots}
-            cheapsharkMatched={!!dealsInfo}
-          />
+          <PriceChart snapshots={snapshots} cheapsharkMatched={!!dealsInfo} />
         </motion.div>
       </div>
     </motion.div>
