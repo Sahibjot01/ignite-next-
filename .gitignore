@@ -24,6 +24,12 @@
 .DS_Store
 *.pem
 
+# personal notes / local project files
+ROADMAP.md
+ISSUES.md
+AGENTS.md
+CLAUDE.md
+
 # debug
 npm-debug.log*
 yarn-debug.log*
