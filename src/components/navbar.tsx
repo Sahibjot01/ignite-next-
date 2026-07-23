@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Search, Heart } from "lucide-react";
+import { Search, Heart, Settings } from "lucide-react";
 import { SignInButton, UserButton, useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -91,6 +91,15 @@ export default function Navbar() {
                 </Button>
               </Link>
               <NotificationsBell />
+              <Link href="/settings">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="hover:bg-zinc-900 hover:text-white rounded-full text-zinc-300"
+                >
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </Link>
               <div className="h-8 w-8 overflow-hidden rounded-full border-2 border-zinc-800 focus:outline-none">
                 <UserButton
                   appearance={{
