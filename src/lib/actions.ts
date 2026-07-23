@@ -4,7 +4,12 @@ import { auth } from "@clerk/nextjs/server";
 import { createClerkSupabaseClient } from "./supabaseClient";
 import { revalidatePath } from "next/cache";
 import { getErrorMessage } from "./utils";
-
+import {
+  exchangeAccessCodeForAuthTokens,
+  exchangeNpssoForAccessCode,
+  getProfileFromUserName,
+} from "psn-api";
+import { encrypt } from "./psn";
 export interface WishlistItem {
   id: string;
   user_id: string;
@@ -31,6 +36,15 @@ export interface NotificationItem {
   message: string;
   is_read: boolean;
   created_at: string;
+}
+
+export interface PsnAccount {
+  user_id: string;
+  online_id: string;
+  account_id: string;
+  refresh_token_encrypted: string;
+  refresh_token_expires_at: string;
+  linked_at: string | null;
 }
 
 // 🔹 1. WISHLIST ACTIONS
@@ -88,7 +102,7 @@ export async function getWishlistStatus(gameId: number): Promise<boolean> {
 export async function toggleWishlist(
   gameId: number,
   gameName: string,
-  gameImage: string
+  gameImage: string,
 ): Promise<{ success: boolean; added: boolean; error?: string }> {
   const { userId } = await auth();
   if (!userId) {
@@ -97,7 +111,7 @@ export async function toggleWishlist(
 
   try {
     const supabase = await createClerkSupabaseClient();
-    
+
     // Check if it already exists
     const { data: existing, error: checkError } = await supabase
       .from("wishlists")
@@ -119,24 +133,19 @@ export async function toggleWishlist(
       if (deleteError) throw deleteError;
 
       // Also clean up any active price alert for this game
-      await supabase
-        .from("price_alerts")
-        .delete()
-        .eq("game_id", gameId);
+      await supabase.from("price_alerts").delete().eq("game_id", gameId);
 
       revalidatePath(`/game/${gameId}`);
       revalidatePath("/wishlist");
       return { success: true, added: false };
     } else {
       // Add it
-      const { error: insertError } = await supabase
-        .from("wishlists")
-        .insert({
-          user_id: userId,
-          game_id: gameId,
-          game_name: gameName,
-          game_image: gameImage,
-        });
+      const { error: insertError } = await supabase.from("wishlists").insert({
+        user_id: userId,
+        game_id: gameId,
+        game_name: gameName,
+        game_image: gameImage,
+      });
 
       if (insertError) throw insertError;
 
@@ -153,7 +162,9 @@ export async function toggleWishlist(
 // 🔹 2. PRICE ALERT ACTIONS
 
 // Get user's price alert for a game
-export async function getPriceAlert(gameId: number): Promise<PriceAlert | null> {
+export async function getPriceAlert(
+  gameId: number,
+): Promise<PriceAlert | null> {
   const { userId } = await auth();
   if (!userId) return null;
 
@@ -180,26 +191,24 @@ export async function getPriceAlert(gameId: number): Promise<PriceAlert | null> 
 // Set or update a target price alert
 export async function setPriceAlert(
   gameId: number,
-  targetPrice: number
+  targetPrice: number,
 ): Promise<{ success: boolean; error?: string }> {
   const { userId } = await auth();
   if (!userId) return { success: false, error: "Authentication required" };
 
   try {
     const supabase = await createClerkSupabaseClient();
-    
-    const { error } = await supabase
-      .from("price_alerts")
-      .upsert(
-        {
-          user_id: userId,
-          game_id: gameId,
-          target_price: targetPrice,
-          is_active: true,
-          triggered_at: null,
-        },
-        { onConflict: "user_id,game_id" }
-      );
+
+    const { error } = await supabase.from("price_alerts").upsert(
+      {
+        user_id: userId,
+        game_id: gameId,
+        target_price: targetPrice,
+        is_active: true,
+        triggered_at: null,
+      },
+      { onConflict: "user_id,game_id" },
+    );
 
     if (error) throw error;
 
@@ -212,7 +221,9 @@ export async function setPriceAlert(
 }
 
 // Delete a price alert
-export async function deletePriceAlert(gameId: number): Promise<{ success: boolean; error?: string }> {
+export async function deletePriceAlert(
+  gameId: number,
+): Promise<{ success: boolean; error?: string }> {
   const { userId } = await auth();
   if (!userId) return { success: false, error: "Authentication required" };
 
@@ -261,7 +272,9 @@ export async function getNotifications(): Promise<NotificationItem[]> {
 }
 
 // Mark a specific notification as read
-export async function markNotificationAsRead(notificationId: string): Promise<{ success: boolean }> {
+export async function markNotificationAsRead(
+  notificationId: string,
+): Promise<{ success: boolean }> {
   const { userId } = await auth();
   if (!userId) return { success: false };
 
@@ -281,7 +294,9 @@ export async function markNotificationAsRead(notificationId: string): Promise<{ 
 }
 
 // Mark all user notifications as read
-export async function markAllNotificationsAsRead(): Promise<{ success: boolean }> {
+export async function markAllNotificationsAsRead(): Promise<{
+  success: boolean;
+}> {
   const { userId } = await auth();
   if (!userId) return { success: false };
 
@@ -297,5 +312,87 @@ export async function markAllNotificationsAsRead(): Promise<{ success: boolean }
   } catch (error) {
     console.error("Error marking all notifications read:", error);
     return { success: false };
+  }
+}
+
+export async function linkPsnAccount(npsso: string) {
+  const { userId } = await auth();
+  if (!userId) return { success: false, error: "Authentication required" };
+
+  try {
+    const accessCode = await exchangeNpssoForAccessCode(npsso);
+    const authorization = await exchangeAccessCodeForAuthTokens(accessCode);
+    const profile = await getProfileFromUserName(authorization, "me");
+    const encryptedRefreshToken = encrypt(authorization.refreshToken);
+    const refreshTokenExpiresTimeStamp = new Date(
+      Date.now() + authorization.refreshTokenExpiresIn * 1000,
+    ).toISOString();
+    const supabase = await createClerkSupabaseClient();
+
+    const { error } = await supabase.from("psn_accounts").upsert(
+      {
+        user_id: userId,
+        online_id: profile.profile.onlineId,
+        account_id: profile.profile.accountId,
+        refresh_token_encrypted: encryptedRefreshToken,
+        refresh_token_expires_at: refreshTokenExpiresTimeStamp,
+      },
+      {
+        onConflict: "user_id",
+      },
+    );
+    if (error) throw error;
+    return { success: true };
+  } catch (err) {
+    console.error("Error linking psn account: ", err);
+    return { success: false, error: getErrorMessage(err) };
+  }
+}
+
+export async function getPsnAccountStatus(): Promise<Pick<
+  PsnAccount,
+  "online_id" | "linked_at" | "refresh_token_expires_at"
+> | null> {
+  const { userId } = await auth();
+  if (!userId) return null;
+  try {
+    const supabase = await createClerkSupabaseClient();
+
+    const { data, error } = await supabase
+      .from("psn_accounts")
+      .select("online_id,linked_at,refresh_token_expires_at")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    return data as Pick<
+      PsnAccount,
+      "online_id" | "linked_at" | "refresh_token_expires_at"
+    >;
+  } catch (err) {
+    console.error("Error getting psn account:", err);
+    return null;
+  }
+}
+
+export async function unlinkPsnAccount() {
+  const { userId } = await auth();
+  if (!userId) return { success: false, error: "Authentication required" };
+  try {
+    const supabase = await createClerkSupabaseClient();
+
+    const { error } = await supabase
+      .from("psn_accounts")
+      .delete()
+      .eq("user_id", userId);
+
+    if (error) throw error;
+    //need updation
+    revalidatePath("/");
+    return { success: true };
+  } catch (err) {
+    console.error("Error unlinlink psn account:", err);
+    return { success: false, error: getErrorMessage(err) };
   }
 }
