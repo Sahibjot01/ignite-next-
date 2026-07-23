@@ -9,7 +9,23 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-chakra-petch);
   --font-heading: var(--font-sans);
+  --color-void: var(--void);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-hairline: var(--hairline);
+  --color-hairline-strong: var(--hairline-strong);
+  --color-ink: var(--ink);
+  --color-ink-dim: var(--ink-dim);
+  --color-ink-faint: var(--ink-faint);
+  --color-coral: var(--coral);
+  --color-coral-soft: var(--coral-soft);
+  --color-coral-ink: var(--coral-ink);
+  --color-platinum: var(--platinum);
+  --color-platinum-soft: var(--platinum-soft);
+  --color-platinum-ink: var(--platinum-ink);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -49,6 +65,21 @@
 }
 
 :root {
+  --void: #0a0d13;
+  --surface: #12161f;
+  --surface-2: #191f2c;
+  --surface-3: #212840;
+  --hairline: rgba(226, 232, 244, 0.08);
+  --hairline-strong: rgba(226, 232, 244, 0.16);
+  --ink: #f2f0ea;
+  --ink-dim: #96a0b5;
+  --ink-faint: #576079;
+  --coral: #ff7676;
+  --coral-soft: #3a2420;
+  --coral-ink: #ffcabf;
+  --platinum: #93abd1;
+  --platinum-soft: #1c2436;
+  --platinum-ink: #d9e3f5;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -126,5 +157,98 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+/* Signature notched-corner shape, three sizes matching card scale */
+.clip-notch-lg {
+  clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 0 100%);
+}
+.clip-notch-md {
+  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%);
+}
+.clip-notch-sm {
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
+}
+
+/* Diagonal texture overlay for art/hero surfaces */
+.art-scanline {
+  position: relative;
+}
+.art-scanline::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    115deg,
+    rgba(0, 0, 0, 0.16) 0 1px,
+    transparent 1px 7px
+  );
+  mix-blend-mode: overlay;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Rich hover strictly gated to real pointer + hover devices (desktop) */
+.card-hover {
+  transition:
+    transform 0.22s cubic-bezier(0.2, 0.7, 0.3, 1),
+    border-color 0.22s ease,
+    box-shadow 0.22s ease;
+}
+.card-hover .card-hover-art {
+  transition: transform 0.4s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+@media (hover: hover) and (pointer: fine) {
+  .card-hover:hover {
+    transform: translateY(-4px);
+    border-color: var(--hairline-strong);
+    box-shadow: 0 16px 32px -16px rgba(0, 0, 0, 0.55);
+  }
+  .card-hover:hover .card-hover-art {
+    transform: scale(1.045);
+  }
+  .card-hover:hover .card-hover-title {
+    color: var(--coral);
+  }
+}
+.card-hover:active {
+  transform: scale(0.985);
+}
+
+/* Ambient idle pulse for urgency badges (e.g. "leaving soon") */
+@keyframes ignite-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 118, 118, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(255, 118, 118, 0);
+  }
+}
+.animate-ignite-pulse {
+  animation: ignite-pulse 2.8s ease-in-out infinite;
+}
+
+/* Staggered reveal on load */
+@keyframes ignite-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .reveal {
+    animation: ignite-rise 0.55s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-ignite-pulse {
+    animation: none;
   }
 }
