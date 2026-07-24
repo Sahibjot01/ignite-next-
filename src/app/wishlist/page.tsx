@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import Navbar from "@/components/navbar";
 import WishlistList from "@/components/wishlist-list";
+import SectionHead from "@/components/section-head";
 import { getUserWishlist } from "@/lib/actions";
 import { getDealsByGameTitle } from "@/lib/cheapshark";
 
@@ -41,15 +42,16 @@ export default async function WishlistPage() {
   );
 
   return (
-    <div className="flex flex-col min-h-screen bg-black text-white">
+    <div className="flex flex-col min-h-screen bg-void text-ink">
       <Navbar />
-      
+
       <main className="flex-1 mx-auto w-full max-w-7xl px-6 py-8 md:px-12">
-        <div className="space-y-6 mb-8 border-l-4 border-[#ff7676] pl-4">
-          <h1 className="text-3xl font-black tracking-wider uppercase">My Wishlist</h1>
-          <p className="text-sm text-zinc-400">
-            Track deals and configure price drop alert targets for your favorite games.
-          </p>
+        <div className="mb-10">
+          <SectionHead
+            eyebrow="Saved"
+            title="Wishlist"
+            sub="Track deals and configure price drop alert targets for your favorite games."
+          />
         </div>
 
         <WishlistList initialItems={wishlistWithDeals} />
