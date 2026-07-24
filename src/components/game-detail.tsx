@@ -17,11 +17,11 @@ import { Game, GameScreenshot, imageResizeURL } from "@/lib/rawg";
 import { CheapSharkGameInfo, getDealRedirectUrl } from "@/lib/cheapshark";
 import { toggleWishlist, PriceAlert } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import PriceChart, { type Snapshot } from "./price-chart";
 import PriceAlertForm from "./price-alert-form";
 import { toast } from "sonner";
+
+const EASE = [0.2, 0.7, 0.3, 1] as const;
 
 interface GameDetailProps {
   game: Game;
@@ -90,7 +90,7 @@ export default function GameDetail({
           className={`h-4.5 w-4.5 ${
             i <= roundedRating
               ? "text-amber-400 fill-amber-400"
-              : "text-zinc-700"
+              : "text-ink-faint"
           }`}
         />,
       );
@@ -98,7 +98,7 @@ export default function GameDetail({
     return stars;
   };
 
-  // Motion Reveal Variants
+  // Motion reveal variants — shared ignite ease for a consistent motion signature
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
     show: {
@@ -109,7 +109,7 @@ export default function GameDetail({
 
   const itemVariants: Variants = {
     hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
+    show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE } },
   };
 
   return (
@@ -119,45 +119,50 @@ export default function GameDetail({
       animate="show"
       className="grid grid-cols-1 gap-8 lg:grid-cols-3"
     >
-      {/* 🔹 Left Column: Game details, Description, Screenshots */}
+      {/* Left column: title, description, screenshots */}
       <div className="lg:col-span-2 space-y-8">
         {/* Title, rating, platforms */}
         <motion.div variants={itemVariants} className="space-y-4">
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
             {game.metacritic && (
-              <Badge className="bg-emerald-950 border-emerald-800 text-emerald-400 font-bold px-2 py-0.5 text-sm">
-                Metacritic: {game.metacritic}
-              </Badge>
+              <div
+                className={`rounded border px-2 py-0.5 text-xs font-bold ${
+                  game.metacritic >= 75
+                    ? "border-green-800 bg-green-950/80 text-green-400"
+                    : game.metacritic >= 50
+                    ? "border-amber-800 bg-amber-950/80 text-amber-400"
+                    : "border-red-800 bg-red-950/80 text-red-400"
+                }`}
+              >
+                Metacritic {game.metacritic}
+              </div>
             )}
             {game.released && (
-              <Badge
-                variant="outline"
-                className="border-zinc-800 text-zinc-400"
-              >
+              <div className="rounded-full border border-hairline bg-surface-2 px-3 py-1 text-xs font-semibold text-ink-dim">
                 Released: {game.released}
-              </Badge>
+              </div>
             )}
           </div>
-          <h1 className="text-4xl font-extrabold tracking-tight md:text-5xl leading-tight text-white">
+          <h1 className="font-display text-4xl font-semibold leading-tight text-ink md:text-5xl">
             {game.name}
           </h1>
 
-          <div className="flex flex-wrap items-center justify-between gap-4 border-y border-zinc-900 py-4">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-y border-hairline py-4">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-zinc-400">Rating:</span>
+              <span className="text-sm font-medium text-ink-dim">Rating:</span>
               <div className="flex items-center">
                 {renderStars(game.rating)}
               </div>
-              <span className="text-xs font-semibold text-zinc-500 pl-1">
+              <span className="pl-1 text-xs font-semibold text-ink-faint">
                 ({game.ratings_count} votes)
               </span>
             </div>
 
             <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-zinc-400">
+              <span className="text-sm font-medium text-ink-dim">
                 Platforms:
               </span>
-              <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-900 px-3 py-1.5 rounded-full">
+              <div className="flex items-center gap-2 rounded-full border border-hairline bg-surface-2 px-3 py-1.5">
                 {game.platforms
                   ?.filter((data) =>
                     data.platform.name.toLowerCase().includes("playstation"),
@@ -166,7 +171,7 @@ export default function GameDetail({
                   .map((data) => (
                     <div
                       key={data.platform.id}
-                      className="relative h-4.5 w-4.5 text-zinc-400"
+                      className="relative h-4.5 w-4.5 text-ink-dim"
                       title={data.platform.name}
                     >
                       <Image
@@ -183,11 +188,9 @@ export default function GameDetail({
         </motion.div>
 
         {/* Description */}
-        <motion.div variants={itemVariants} className="space-y-3">
-          <h3 className="text-xl font-bold border-l-4 border-[#ff7676] pl-3 text-white">
-            About
-          </h3>
-          <p className="text-zinc-300 leading-relaxed text-sm whitespace-pre-line max-w-none">
+        <motion.div variants={itemVariants} className="space-y-4">
+          <SectionLabel>About</SectionLabel>
+          <p className="max-w-none whitespace-pre-line text-sm leading-relaxed text-ink-dim">
             {game.description_raw || "No description available for this game."}
           </p>
         </motion.div>
@@ -195,22 +198,22 @@ export default function GameDetail({
         {/* Screenshots Gallery */}
         {screenshots && screenshots.length > 0 && (
           <motion.div variants={itemVariants} className="space-y-4">
-            <h3 className="text-xl font-bold border-l-4 border-[#ff7676] pl-3 text-white">
-              Screenshots
-            </h3>
+            <SectionLabel>Screenshots</SectionLabel>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {screenshots.map((screen) => (
                 <div
                   key={screen.id}
-                  className="relative aspect-16/10 overflow-hidden rounded-xl bg-zinc-900 border border-zinc-900 shadow-md group hover:border-zinc-800 transition-colors"
+                  className="card-hover clip-notch-md relative aspect-[16/10] overflow-hidden border border-hairline bg-surface-2"
                 >
-                  <Image
-                    src={imageResizeURL(screen.image, 1280)}
-                    alt="game screenshot"
-                    fill
-                    sizes="(max-width: 768px) 100vw, 50vw"
-                    className="object-cover group-hover:scale-102 transition-transform duration-300 ease-out"
-                  />
+                  <div className="card-hover-art relative h-full w-full">
+                    <Image
+                      src={imageResizeURL(screen.image, 1280)}
+                      alt={`${game.name} screenshot`}
+                      fill
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                      className="object-cover"
+                    />
+                  </div>
                 </div>
               ))}
             </div>
@@ -218,12 +221,12 @@ export default function GameDetail({
         )}
       </div>
 
-      {/* 🔹 Right Column: Shopping and Alerts (Sticky sidebar) */}
-      <div className="space-y-6 lg:h-fit lg:sticky lg:top-24">
+      {/* Right column: cover, wishlist CTA, deals, alerts, price chart (sticky) */}
+      <div className="space-y-6 lg:sticky lg:top-24 lg:h-fit">
         {/* Main Cover Image */}
         <motion.div
           variants={itemVariants}
-          className="relative aspect-16/10 overflow-hidden rounded-2xl bg-zinc-900 border border-zinc-900 shadow-xl"
+          className="art-scanline clip-notch-lg relative aspect-[16/10] overflow-hidden border border-hairline bg-surface-2"
         >
           <Image
             src={
@@ -236,6 +239,7 @@ export default function GameDetail({
             sizes="(max-width: 1024px) 100vw, 33vw"
             className="object-cover"
           />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-void/80 via-transparent to-transparent" />
         </motion.div>
 
         {/* Wishlist Button */}
@@ -244,10 +248,10 @@ export default function GameDetail({
             <Button
               disabled={isMutating}
               onClick={handleWishlistToggle}
-              className={`w-full h-12 rounded-full font-bold flex items-center justify-center gap-2 shadow-lg transition-all duration-300 ${
+              className={`flex h-12 w-full items-center justify-center gap-2 rounded-full font-bold transition-colors duration-200 ${
                 isWishlisted
-                  ? "bg-zinc-900 border border-zinc-800 text-[#ff7676] hover:bg-zinc-850"
-                  : "bg-[#ff7676] text-white hover:bg-[#ff5858]"
+                  ? "border border-hairline-strong bg-surface-2 text-coral hover:bg-surface-3"
+                  : "bg-coral text-void hover:bg-[#ff5858]"
               }`}
             >
               {isMutating ? (
@@ -266,7 +270,7 @@ export default function GameDetail({
             </Button>
           ) : (
             <SignInButton mode="modal" forceRedirectUrl={`/game/${game.id}`}>
-              <Button className="w-full h-12 rounded-full font-bold bg-[#ff7676] text-white hover:bg-[#ff5858] flex items-center justify-center gap-2 shadow-lg">
+              <Button className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-coral font-bold text-void hover:bg-[#ff5858]">
                 <Heart className="h-5 w-5" />
                 Sign In to Save
               </Button>
@@ -275,58 +279,58 @@ export default function GameDetail({
         </motion.div>
 
         {/* CheapShark Store Deals */}
-        <motion.div variants={itemVariants} className="space-y-4">
-          <Card className="border-zinc-900 bg-zinc-950 text-white shadow-xl">
-            <CardContent className="p-6 space-y-4">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-amber-400" />
-                <h3 className="text-base font-bold">Best PC Store Deals</h3>
-              </div>
+        <motion.div variants={itemVariants}>
+          <div className="clip-notch-sm border border-hairline bg-surface p-6">
+            <div className="mb-4 flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-amber-400" />
+              <h3 className="font-display text-sm font-semibold text-ink">
+                Best PC Store Deals
+              </h3>
+            </div>
 
-              {!dealsInfo || dealsInfo.deals.length === 0 ? (
-                <p className="text-zinc-500 text-xs text-center py-4">
-                  No active store deals found.
-                </p>
-              ) : (
-                <div className="space-y-3.5">
-                  {dealsInfo.deals.slice(0, 5).map((deal) => (
-                    <a
-                      key={deal.dealID}
-                      href={getDealRedirectUrl(deal.dealID)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-between p-3 rounded-xl border border-zinc-900 hover:border-zinc-800 bg-zinc-900/30 hover:bg-zinc-900/70 transition-all duration-200 group"
-                    >
-                      <div className="space-y-0.5">
-                        <p className="text-xs font-bold text-zinc-300 group-hover:text-white">
-                          {deal.storeName}
+            {!dealsInfo || dealsInfo.deals.length === 0 ? (
+              <p className="py-4 text-center text-xs text-ink-faint">
+                No active store deals found.
+              </p>
+            ) : (
+              <div className="space-y-3.5">
+                {dealsInfo.deals.slice(0, 5).map((deal) => (
+                  <a
+                    key={deal.dealID}
+                    href={getDealRedirectUrl(deal.dealID)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex items-center justify-between rounded-lg border border-hairline bg-surface-2/40 p-3 transition-all duration-200 hover:border-hairline-strong hover:bg-surface-2"
+                  >
+                    <div className="space-y-1">
+                      <p className="text-xs font-bold text-ink-dim group-hover:text-ink">
+                        {deal.storeName}
+                      </p>
+                      {deal.isOnSale && (
+                        <span className="inline-block rounded bg-coral-soft px-1.5 py-0.5 text-[10px] font-bold text-coral">
+                          {deal.savings}% OFF
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <p className="text-sm font-black text-emerald-400">
+                          ${deal.price.toFixed(2)}
                         </p>
                         {deal.isOnSale && (
-                          <Badge className="bg-red-950/50 hover:bg-red-950/50 border border-red-900/50 text-[#ff7676] text-[10px] font-bold py-0 px-1.5 h-4.5 rounded">
-                            {deal.savings}% OFF
-                          </Badge>
+                          <p className="text-[10px] text-ink-faint line-through">
+                            ${deal.normalPrice.toFixed(2)}
+                          </p>
                         )}
                       </div>
-
-                      <div className="flex items-center gap-3">
-                        <div className="text-right">
-                          <p className="text-sm font-black text-emerald-400">
-                            ${deal.price.toFixed(2)}
-                          </p>
-                          {deal.isOnSale && (
-                            <p className="text-[10px] text-zinc-500 line-through">
-                              ${deal.normalPrice.toFixed(2)}
-                            </p>
-                          )}
-                        </div>
-                        <ExternalLink className="h-3.5 w-3.5 text-zinc-500 group-hover:text-zinc-350 transition-colors" />
-                      </div>
-                    </a>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                      <ExternalLink className="h-3.5 w-3.5 text-ink-faint transition-colors group-hover:text-ink-dim" />
+                    </div>
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
         </motion.div>
 
         {/* Price Alerts Card */}
@@ -346,5 +350,13 @@ export default function GameDetail({
         </motion.div>
       </div>
     </motion.div>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="border-b border-hairline pb-3 font-display text-xs font-semibold uppercase tracking-[0.2em] text-coral">
+      {children}
+    </h3>
   );
 }
