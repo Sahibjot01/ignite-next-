@@ -12,7 +12,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   getNotifications,
   markNotificationAsRead,
@@ -67,33 +66,33 @@ export default function NotificationsBell() {
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button variant="ghost" size="icon" className="relative hover:bg-zinc-800 text-zinc-350 hover:text-white rounded-full" />
+          <Button variant="ghost" size="icon" className="relative text-ink-dim hover:bg-surface hover:text-ink rounded-full" />
         }
       >
         <Bell className="h-5 w-5" />
         {unreadCount > 0 && (
-          <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center rounded-full bg-[#ff7676] text-white text-[10px] font-bold border-2 border-black p-0">
+          <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-void bg-coral text-[10px] font-bold text-void">
             {unreadCount}
-          </Badge>
+          </span>
         )}
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80 bg-zinc-900 border-zinc-800 text-white">
+      <DropdownMenuContent align="end" className="w-80 bg-surface-2 border-hairline-strong text-ink">
         <div className="flex items-center justify-between px-4 py-2">
-          <span className="font-bold text-sm">Notifications</span>
+          <span className="font-bold text-sm text-ink">Notifications</span>
           {unreadCount > 0 && (
             <Button
               variant="link"
               onClick={handleMarkAllRead}
-              className="text-xs text-[#ff7676] hover:text-[#ff9292] p-0 h-auto font-medium"
+              className="text-xs text-coral hover:text-coral-ink p-0 h-auto font-medium"
             >
               Mark all as read
             </Button>
           )}
         </div>
-        <DropdownMenuSeparator className="bg-zinc-800" />
+        <DropdownMenuSeparator className="bg-hairline-strong" />
         <div className="max-h-64 overflow-y-auto">
           {notifications.length === 0 ? (
-            <div className="text-center py-6 text-sm text-zinc-400">
+            <div className="text-center py-6 text-sm text-ink-dim">
               No notifications yet
             </div>
           ) : (
@@ -101,18 +100,18 @@ export default function NotificationsBell() {
               <DropdownMenuItem
                 key={notification.id}
                 render={<Link href={`/game/${notification.game_id}`} />}
-                className="flex flex-col items-start gap-1 p-3 focus:bg-zinc-800 cursor-pointer border-b border-zinc-800/50 last:border-b-0"
+                className="flex flex-col items-start gap-1 p-3 focus:bg-surface-3 cursor-pointer border-b border-hairline last:border-b-0"
                 onClick={() => handleMarkAsRead(notification.id)}
               >
                   <div className="flex items-start gap-2">
                     {!notification.is_read && (
-                      <span className="mt-1.5 h-2 w-2 rounded-full bg-[#ff7676] shrink-0" />
+                      <span className="mt-1.5 h-2 w-2 rounded-full bg-coral shrink-0" />
                     )}
-                    <p className={`text-xs ${!notification.is_read ? 'font-semibold text-white' : 'text-zinc-400'}`}>
+                    <p className={`text-xs ${!notification.is_read ? 'font-semibold text-ink' : 'text-ink-dim'}`}>
                       {notification.message}
                     </p>
                   </div>
-                  <span className="text-[10px] text-zinc-500 pl-4 block mt-1">
+                  <span className="text-[10px] text-ink-faint pl-4 block mt-1">
                     {new Date(notification.created_at).toLocaleDateString()}
                   </span>
               </DropdownMenuItem>
