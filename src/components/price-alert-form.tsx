@@ -79,16 +79,16 @@ export default function PriceAlertForm({ gameId, currentPrice, initialAlert }: P
 
   if (!isSignedIn) {
     return (
-      <div className="rounded-xl border border-zinc-900 bg-zinc-950 p-6 flex flex-col items-center text-center gap-4">
-        <Bell className="h-6 w-6 text-zinc-500" />
+      <div className="clip-notch-sm flex flex-col items-center gap-4 border border-hairline bg-surface p-6 text-center">
+        <Bell className="h-6 w-6 text-ink-faint" />
         <div>
-          <h4 className="text-sm font-bold text-zinc-350">Want price alerts?</h4>
-          <p className="text-xs text-zinc-500 mt-1 max-w-xs">
+          <h4 className="font-display text-sm font-semibold text-ink">Want price alerts?</h4>
+          <p className="mt-1 max-w-xs text-xs text-ink-faint">
             Sign in to track deal details and set alerts when the price drops below your target!
           </p>
         </div>
         <SignInButton mode="modal">
-          <Button className="bg-zinc-800 hover:bg-zinc-700 text-white rounded-full text-xs font-bold px-6 h-9">
+          <Button className="h-9 rounded-full bg-surface-2 px-6 text-xs font-bold text-ink hover:bg-surface-3">
             Sign In to Alert
           </Button>
         </SignInButton>
@@ -97,21 +97,21 @@ export default function PriceAlertForm({ gameId, currentPrice, initialAlert }: P
   }
 
   return (
-    <div className="rounded-xl border border-zinc-900 bg-zinc-950 p-6">
-      <div className="flex items-center gap-2.5 mb-4">
-        <Bell className="h-5 w-5 text-[#ff7676]" />
+    <div className="clip-notch-sm border border-hairline bg-surface p-6">
+      <div className="mb-4 flex items-center gap-2.5">
+        <Bell className="h-5 w-5 text-coral" />
         <div>
-          <h4 className="text-sm font-bold text-zinc-300">Set Price Alert</h4>
-          <p className="text-xs text-zinc-500">Get notified immediately upon a price drop</p>
+          <h4 className="font-display text-sm font-semibold text-ink">Set Price Alert</h4>
+          <p className="text-xs text-ink-faint">Get notified immediately upon a price drop</p>
         </div>
       </div>
 
       {alert ? (
         <div className="space-y-4">
-          <div className="rounded-lg bg-zinc-900/50 p-3 border border-zinc-900 flex items-center justify-between">
+          <div className="flex items-center justify-between rounded-lg border border-hairline bg-surface-2/50 p-3">
             <div>
-              <p className="text-xs text-zinc-400">Active Target Price Alert</p>
-              <p className="text-lg font-black text-[#ff7676] mt-0.5">
+              <p className="text-xs text-ink-faint">Active Target Price Alert</p>
+              <p className="mt-0.5 text-lg font-black text-coral">
                 ${alert.target_price.toFixed(2)}
               </p>
             </div>
@@ -120,7 +120,7 @@ export default function PriceAlertForm({ gameId, currentPrice, initialAlert }: P
               size="sm"
               disabled={isSubmitting}
               onClick={handleDelete}
-              className="border-zinc-800 hover:border-red-900 hover:bg-red-950/20 text-zinc-400 hover:text-red-400 rounded-full h-8"
+              className="h-8 rounded-full border-hairline-strong text-ink-dim hover:border-red-900 hover:bg-red-950/20 hover:text-red-400"
             >
               {isSubmitting ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -130,7 +130,7 @@ export default function PriceAlertForm({ gameId, currentPrice, initialAlert }: P
               Remove
             </Button>
           </div>
-          <p className="text-[10px] text-zinc-500 italic text-center">
+          <p className="text-center text-[10px] italic text-ink-faint">
             Currently tracking. If the lowest store price falls below your target, we will send an alert here.
           </p>
         </div>
@@ -138,7 +138,7 @@ export default function PriceAlertForm({ gameId, currentPrice, initialAlert }: P
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 text-sm font-semibold">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-semibold text-ink-faint">
                 $
               </span>
               <Input
@@ -148,13 +148,13 @@ export default function PriceAlertForm({ gameId, currentPrice, initialAlert }: P
                 placeholder="0.00"
                 value={targetPrice}
                 onChange={(e) => setTargetPrice(e.target.value)}
-                className="bg-zinc-900 border-zinc-800 text-white pl-7 pr-3 rounded-full focus:ring-[#ff7676] focus:border-[#ff7676] h-10 text-sm"
+                className="h-10 rounded-full border-hairline bg-surface-2 pl-7 pr-3 text-sm text-ink focus:border-coral focus:ring-coral"
               />
             </div>
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="bg-[#ff7676] hover:bg-[#ff5858] text-white rounded-full font-bold px-5 h-10 text-sm"
+              className="h-10 rounded-full bg-coral px-5 text-sm font-bold text-void hover:bg-[#ff5858]"
             >
               {isSubmitting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -163,7 +163,7 @@ export default function PriceAlertForm({ gameId, currentPrice, initialAlert }: P
               )}
             </Button>
           </div>
-          <p className="text-[10px] text-zinc-500">
+          <p className="text-[10px] text-ink-faint">
             Suggested price target: 20% off current deal price (${Math.round(currentPrice * 0.8 * 100) / 100}).
           </p>
         </form>

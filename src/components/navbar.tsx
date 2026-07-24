@@ -33,7 +33,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="sticky top-0 z-40 w-full border-b border-zinc-900 bg-black/80 backdrop-blur-md px-6 py-4 md:px-12">
+    <nav className="sticky top-0 z-40 w-full border-b border-hairline bg-void/80 backdrop-blur-md px-6 py-4 md:px-12">
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 sm:flex-row">
         {/* Logo and Title */}
         <div
@@ -47,8 +47,8 @@ export default function Navbar() {
             height={32}
             className="h-8 w-8 hover:rotate-12 transition-transform duration-300"
           />
-          <h1 className="text-2xl font-bold tracking-wider text-white">
-            Ignite<span className="text-[#ff7676]">.</span>
+          <h1 className="font-display text-xl font-bold uppercase tracking-wider text-ink">
+            Ignite<span className="text-coral">.</span>
           </h1>
         </div>
 
@@ -63,13 +63,13 @@ export default function Navbar() {
               placeholder="Search games..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-zinc-900 border-zinc-800 text-white placeholder-zinc-500 rounded-full pl-10 pr-4 focus:ring-[#ff7676] focus:border-[#ff7676]"
+              className="w-full bg-surface border-hairline text-ink placeholder-ink-faint rounded-full pl-10 pr-4 focus:ring-coral focus:border-coral"
             />
-            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" />
           </div>
           <Button
             type="submit"
-            className="bg-[#ff7676] hover:bg-[#ff5858] text-white rounded-full font-bold px-6"
+            className="bg-coral hover:bg-[#ff5858] text-void rounded-full font-bold px-6"
           >
             SEARCH
           </Button>
@@ -82,9 +82,9 @@ export default function Navbar() {
               <Link href="/wishlist">
                 <Button
                   variant="ghost"
-                  className="flex items-center gap-2 hover:bg-zinc-900 hover:text-white rounded-full text-zinc-300"
+                  className="flex items-center gap-2 hover:bg-surface hover:text-ink rounded-full text-ink-dim"
                 >
-                  <Heart className="h-4 w-4 text-[#ff7676] fill-[#ff7676]" />
+                  <Heart className="h-4 w-4 text-coral fill-coral" />
                   <span className="hidden sm:inline font-semibold">
                     Wishlist
                   </span>
@@ -95,12 +95,12 @@ export default function Navbar() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="hover:bg-zinc-900 hover:text-white rounded-full text-zinc-300"
+                  className="hover:bg-surface hover:text-ink rounded-full text-ink-dim"
                 >
                   <Settings className="h-4 w-4" />
                 </Button>
               </Link>
-              <div className="h-8 w-8 overflow-hidden rounded-full border-2 border-zinc-800 focus:outline-none">
+              <div className="h-8 w-8 overflow-hidden rounded-full border-2 border-hairline-strong focus:outline-none">
                 <UserButton
                   appearance={{
                     elements: {
@@ -114,7 +114,7 @@ export default function Navbar() {
             <SignInButton mode="modal">
               <Button
                 variant="ghost"
-                className="text-zinc-300 hover:bg-zinc-900 hover:text-white rounded-full font-semibold"
+                className="text-ink-dim hover:bg-surface hover:text-ink rounded-full font-semibold"
               >
                 Sign In
               </Button>

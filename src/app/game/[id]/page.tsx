@@ -50,9 +50,9 @@ export default async function GameDetailPage(props: PageProps) {
   const snapshots = snapshotsData || [];
 
   return (
-    <div className="flex flex-col min-h-screen bg-black text-white">
+    <div className="flex flex-col min-h-screen bg-void text-ink">
       <Navbar />
-      
+
       <main className="flex-1 mx-auto w-full max-w-7xl px-6 py-8 md:px-12">
         <GameDetail
           game={game}

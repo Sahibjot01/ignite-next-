@@ -76,14 +76,14 @@ export default function PsnLinkCard({ initialAccount }: PsnLinkCardProps) {
   };
 
   return (
-    <div className="rounded-xl border border-zinc-900 bg-zinc-950 p-6">
+    <div className="clip-notch-sm border border-hairline bg-surface p-6">
       <div className="flex items-center gap-2.5 mb-5">
-        <Gamepad2 className="h-5 w-5 text-[#ff7676]" />
+        <Gamepad2 className="h-5 w-5 text-coral" />
         <div>
-          <h4 className="text-sm font-bold text-zinc-300">
+          <h4 className="font-display text-sm font-semibold text-ink">
             PlayStation Account
           </h4>
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-ink-faint">
             Link your PSN account to unlock library import and free-game
             alerts
           </p>
@@ -92,14 +92,14 @@ export default function PsnLinkCard({ initialAccount }: PsnLinkCardProps) {
 
       {account ? (
         <div className="space-y-4">
-          <div className="rounded-lg bg-zinc-900/50 p-4 border border-zinc-900 flex items-center justify-between">
+          <div className="rounded-lg bg-surface-2/50 p-4 border border-hairline flex items-center justify-between">
             <div className="flex items-center gap-3">
               <ShieldCheck className="h-5 w-5 text-emerald-500 shrink-0" />
               <div>
-                <p className="text-sm font-bold text-white">
+                <p className="text-sm font-bold text-ink">
                   {account.online_id}
                 </p>
-                <p className="text-xs text-zinc-500 mt-0.5">
+                <p className="text-xs text-ink-faint mt-0.5">
                   Connected
                   {account.linked_at
                     ? ` ${format(new Date(account.linked_at), "MMM d, yyyy")}`
@@ -112,7 +112,7 @@ export default function PsnLinkCard({ initialAccount }: PsnLinkCardProps) {
               size="sm"
               disabled={isSubmitting}
               onClick={handleUnlink}
-              className="border-zinc-800 hover:border-red-900 hover:bg-red-950/20 text-zinc-400 hover:text-red-400 rounded-full h-8 shrink-0"
+              className="border-hairline-strong hover:border-red-900 hover:bg-red-950/20 text-ink-dim hover:text-red-400 rounded-full h-8 shrink-0"
             >
               {isSubmitting ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -122,21 +122,21 @@ export default function PsnLinkCard({ initialAccount }: PsnLinkCardProps) {
               Unlink
             </Button>
           </div>
-          <p className="text-[10px] text-zinc-500 italic">
+          <p className="text-[10px] text-ink-faint italic">
             Unlinking removes your stored session — you can relink anytime
             with a fresh NPSSO value.
           </p>
         </div>
       ) : (
         <div className="space-y-4">
-          <ol className="text-xs text-zinc-400 space-y-1.5 list-decimal list-inside">
+          <ol className="text-xs text-ink-dim space-y-1.5 list-decimal list-inside">
             <li>
               Log in at{" "}
               <a
                 href="https://www.playstation.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[#ff7676] hover:underline inline-flex items-center gap-0.5"
+                className="text-coral hover:underline inline-flex items-center gap-0.5"
               >
                 playstation.com
                 <ExternalLink className="h-3 w-3" />
@@ -148,7 +148,7 @@ export default function PsnLinkCard({ initialAccount }: PsnLinkCardProps) {
                 href="https://ca.account.sony.com/api/v1/ssocookie"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[#ff7676] hover:underline inline-flex items-center gap-0.5"
+                className="text-coral hover:underline inline-flex items-center gap-0.5"
               >
                 this Sony URL
                 <ExternalLink className="h-3 w-3" />
@@ -163,12 +163,12 @@ export default function PsnLinkCard({ initialAccount }: PsnLinkCardProps) {
               placeholder="Paste your NPSSO value"
               value={npsso}
               onChange={(e) => setNpsso(e.target.value)}
-              className="bg-zinc-900 border-zinc-800 text-white placeholder-zinc-500 rounded-full h-10 text-sm focus:ring-[#ff7676] focus:border-[#ff7676]"
+              className="bg-surface-2 border-hairline text-ink placeholder-ink-faint rounded-full h-10 text-sm focus:ring-coral focus:border-coral"
             />
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-[#ff7676] hover:bg-[#ff5858] text-white rounded-full font-bold h-10 text-sm"
+              className="w-full bg-coral hover:bg-[#ff5858] text-void rounded-full font-bold h-10 text-sm"
             >
               {isSubmitting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -178,7 +178,7 @@ export default function PsnLinkCard({ initialAccount }: PsnLinkCardProps) {
             </Button>
           </form>
 
-          <p className="text-[10px] text-zinc-500 italic">
+          <p className="text-[10px] text-ink-faint italic">
             Your session is encrypted before storage and never leaves our
             server. The NPSSO value itself is single-use and expires within
             minutes.

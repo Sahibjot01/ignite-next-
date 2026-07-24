@@ -9,7 +9,7 @@ interface GameGridProps {
 export default function GameGrid({ games, wishlistGameIds }: GameGridProps) {
   if (!games || games.length === 0) {
     return (
-      <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-zinc-800 text-zinc-500">
+      <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-hairline-strong text-ink-faint">
         No games found.
       </div>
     );

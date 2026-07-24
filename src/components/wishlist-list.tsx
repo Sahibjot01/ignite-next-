@@ -3,14 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Trash2, ExternalLink } from "lucide-react";
+import { Heart, Trash2, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { toggleWishlist } from "@/lib/actions";
 import { imageResizeURL } from "@/lib/rawg";
 import { toast } from "sonner";
+
+const EASE = [0.2, 0.7, 0.3, 1] as const;
 
 interface WishlistWithDealsItem {
   id: string;
@@ -52,16 +52,18 @@ export default function WishlistList({ initialItems }: WishlistListProps) {
 
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-800 bg-zinc-950/20 py-16 text-center px-4">
-        <div className="rounded-full bg-zinc-900 p-4 border border-zinc-800 mb-4 text-[#ff7676]">
-          <Trash2 className="h-6 w-6" />
+      <div className="clip-notch-lg flex flex-col items-center justify-center border border-dashed border-hairline-strong bg-surface/40 px-4 py-16 text-center">
+        <div className="mb-4 rounded-full border border-hairline-strong bg-surface-2 p-4 text-coral">
+          <Heart className="h-6 w-6" />
         </div>
-        <h3 className="text-lg font-bold text-zinc-300">Your wishlist is empty</h3>
-        <p className="text-xs text-zinc-500 mt-1 max-w-sm">
+        <h3 className="font-display text-lg font-medium text-ink">
+          Your wishlist is empty
+        </h3>
+        <p className="mt-1 max-w-sm text-xs text-ink-faint">
           Browse popular, upcoming, or new games and add them to your wishlist to track price deals and set alerts.
         </p>
         <Link href="/" className="mt-6">
-          <Button className="bg-[#ff7676] hover:bg-[#ff5858] text-white rounded-full font-bold px-6">
+          <Button className="rounded-full bg-coral px-6 font-bold text-void hover:bg-[#ff5858]">
             Browse Games
           </Button>
         </Link>
@@ -74,7 +76,7 @@ export default function WishlistList({ initialItems }: WishlistListProps) {
       <AnimatePresence mode="popLayout">
         {items.map((item) => {
           const resizedImage = imageResizeURL(item.game_image, 640) || "/icons/gamepad.svg";
-          
+
           return (
             <motion.div
               key={item.game_id}
@@ -82,80 +84,81 @@ export default function WishlistList({ initialItems }: WishlistListProps) {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.25 }}
+              transition={{ duration: 0.25, ease: EASE }}
               className="h-full"
             >
-              <Card className="relative overflow-hidden border-zinc-800 bg-zinc-950 text-white h-full flex flex-col group shadow-lg hover:shadow-2xl">
+              <article className="card-hover clip-notch-md relative flex h-full flex-col overflow-hidden border border-hairline bg-surface">
                 {/* Remove from wishlist button */}
                 <div className="absolute right-3 top-3 z-10">
                   <Button
-                    variant="destructive"
+                    variant="secondary"
                     size="icon"
                     onClick={() => handleRemove(item.game_id, item.game_name)}
-                    className="h-9 w-9 rounded-full bg-black/60 backdrop-blur-md border border-zinc-800 text-zinc-400 hover:bg-red-650 hover:text-white hover:border-red-800 transition-colors"
+                    className="h-9 w-9 rounded-full border border-hairline-strong bg-void/60 text-ink-dim backdrop-blur-md transition-colors duration-200 hover:border-red-500 hover:bg-red-500/90 hover:text-white"
                   >
                     <Trash2 className="h-4.5 w-4.5" />
                   </Button>
                 </div>
 
-                <Link href={`/game/${item.game_id}`} className="block flex flex-col flex-1 h-full">
+                <Link href={`/game/${item.game_id}`} className="flex h-full flex-1 flex-col">
                   {/* Game Cover Image */}
-                  <div className="relative aspect-[16/10] w-full overflow-hidden bg-zinc-900 shrink-0">
+                  <div className="card-hover-art art-scanline relative aspect-[16/10] w-full shrink-0 overflow-hidden bg-surface-2">
                     <Image
                       src={resizedImage}
                       alt={item.game_name}
                       fill
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                      className="object-cover group-hover:scale-103 transition-transform duration-500 ease-out"
+                      className="object-cover"
                       unoptimized={resizedImage.endsWith(".svg")}
                     />
+                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-void/85 via-transparent to-transparent" />
                   </div>
 
                   {/* Card Content */}
-                  <CardContent className="p-5 flex flex-col flex-1 justify-between">
+                  <div className="flex flex-1 flex-col justify-between p-5">
                     <div>
-                      <h3 className="text-base font-bold line-clamp-2 leading-snug group-hover:text-[#ff7676] transition-colors">
+                      <h3 className="card-hover-title font-display text-lg font-medium leading-snug text-ink line-clamp-2 transition-colors duration-200">
                         {item.game_name}
                       </h3>
-                      <p className="mt-1 text-[10px] text-zinc-500">
+                      <p className="mt-1.5 text-xs text-ink-faint">
                         Added: {new Date(item.added_at).toLocaleDateString()}
                       </p>
                     </div>
 
-                    <div className="mt-5 flex items-center justify-between border-t border-zinc-900 pt-3">
+                    <div className="mt-4 flex items-center justify-between border-t border-hairline pt-3 text-sm">
                       <div>
                         {item.cheapestPrice !== null ? (
                           <div className="space-y-0.5">
-                            <p className="text-xs text-zinc-400">Cheapest Price</p>
+                            <p className="text-xs text-ink-faint">Cheapest Price</p>
                             <div className="flex items-center gap-1.5">
-                              <span className="text-sm font-black text-emerald-400">
+                              <span className="font-black text-emerald-400">
                                 ${item.cheapestPrice.toFixed(2)}
                               </span>
                               {item.isOnSale && item.savings && (
-                                <Badge className="bg-red-950/40 hover:bg-red-950/40 border border-red-900/30 text-[#ff7676] text-[9px] font-bold py-0 px-1 rounded h-4">
+                                <span className="rounded bg-coral-soft px-1 py-0.5 text-[9px] font-bold text-coral">
                                   -{item.savings}%
-                                </Badge>
+                                </span>
                               )}
                             </div>
                           </div>
                         ) : (
                           <div className="space-y-0.5">
-                            <p className="text-xs text-zinc-400">Pricing</p>
-                            <span className="text-xs text-zinc-500 font-semibold italic">
+                            <p className="text-xs text-ink-faint">Pricing</p>
+                            <span className="text-xs font-semibold italic text-ink-faint">
                               Unavailable
                             </span>
                           </div>
                         )}
                       </div>
 
-                      <span className="text-xs font-semibold text-zinc-400 group-hover:text-[#ff7676] flex items-center gap-1.5 transition-colors">
+                      <span className="flex items-center gap-1.5 text-xs font-semibold text-ink-dim">
                         Details
                         <ExternalLink className="h-3 w-3" />
                       </span>
                     </div>
-                  </CardContent>
+                  </div>
                 </Link>
-              </Card>
+              </article>
             </motion.div>
           );
         })}
