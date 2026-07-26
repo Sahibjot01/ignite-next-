@@ -7,9 +7,10 @@ import { getErrorMessage } from "./utils";
 import {
   exchangeAccessCodeForAuthTokens,
   exchangeNpssoForAccessCode,
+  exchangeRefreshTokenForAuthTokens,
   getProfileFromUserName,
 } from "psn-api";
-import { encrypt } from "./psn";
+import { decrypt, encrypt } from "./psn";
 export interface WishlistItem {
   id: string;
   user_id: string;
@@ -393,6 +394,49 @@ export async function unlinkPsnAccount() {
     return { success: true };
   } catch (err) {
     console.error("Error unlinlink psn account:", err);
+    return { success: false, error: getErrorMessage(err) };
+  }
+}
+
+export async function getFreshAccessToken() {
+  const { userId } = await auth();
+  if (!userId) return { success: false, error: "Authentication required" };
+  try {
+    const supabase = await createClerkSupabaseClient();
+
+    const { data: row, error } = await supabase
+      .from("psn_accounts")
+      .select("refresh_token_encrypted")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    if (!row)
+      return { success: false, error: "user didd't link psn account yet" };
+
+    const refresh_token = decrypt(row?.refresh_token_encrypted);
+    const authTokenResp =
+      await exchangeRefreshTokenForAuthTokens(refresh_token);
+    const newRefreshToken = encrypt(authTokenResp.refreshToken);
+
+    const { error: secErr } = await supabase.from("psn_accounts").upsert(
+      {
+        user_id: userId,
+        refresh_token_encrypted: newRefreshToken,
+        refresh_token_expires_at: new Date(
+          Date.now() + authTokenResp.refreshTokenExpiresIn * 1000,
+        ).toISOString(),
+      },
+      {
+        onConflict: "user_id",
+      },
+    );
+    if (secErr) throw secErr;
+
+    return { success: true, accessToken: authTokenResp.accessToken };
+  } catch (err) {
+    console.error("Error getting refreshToken for user:", err);
     return { success: false, error: getErrorMessage(err) };
   }
 }
