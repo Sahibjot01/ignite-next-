@@ -9,8 +9,9 @@ import {
   exchangeNpssoForAccessCode,
   exchangeRefreshTokenForAuthTokens,
   getProfileFromUserName,
+  UserPlayedGamesResponse,
 } from "psn-api";
-import { decrypt, encrypt } from "./psn";
+import { decrypt, encrypt, getPsnPlayedGames } from "./psn";
 export interface WishlistItem {
   id: string;
   user_id: string;
@@ -48,6 +49,13 @@ export interface PsnAccount {
   linked_at: string | null;
 }
 
+type TokenResult =
+  | { success: true; accessToken: string }
+  | { success: false; error: string };
+
+type LibraryGamesResult =
+  | { success: true; games: UserPlayedGamesResponse["titles"] }
+  | { success: false; error: string };
 // 🔹 1. WISHLIST ACTIONS
 
 // Get all wishlisted games for the current user
@@ -398,7 +406,7 @@ export async function unlinkPsnAccount() {
   }
 }
 
-export async function getFreshAccessToken() {
+export async function getFreshAccessToken(): Promise<TokenResult> {
   const { userId } = await auth();
   if (!userId) return { success: false, error: "Authentication required" };
   try {
@@ -420,23 +428,33 @@ export async function getFreshAccessToken() {
       await exchangeRefreshTokenForAuthTokens(refresh_token);
     const newRefreshToken = encrypt(authTokenResp.refreshToken);
 
-    const { error: secErr } = await supabase.from("psn_accounts").upsert(
-      {
-        user_id: userId,
+    const { error: secErr } = await supabase
+      .from("psn_accounts")
+      .update({
         refresh_token_encrypted: newRefreshToken,
         refresh_token_expires_at: new Date(
           Date.now() + authTokenResp.refreshTokenExpiresIn * 1000,
         ).toISOString(),
-      },
-      {
-        onConflict: "user_id",
-      },
-    );
+      })
+      .eq("user_id", userId);
     if (secErr) throw secErr;
 
     return { success: true, accessToken: authTokenResp.accessToken };
   } catch (err) {
     console.error("Error getting refreshToken for user:", err);
+    return { success: false, error: getErrorMessage(err) };
+  }
+}
+
+export async function getLibraryGames(): Promise<LibraryGamesResult> {
+  const result = await getFreshAccessToken();
+  if (!result.success) {
+    return result;
+  }
+  try {
+    const games = await getPsnPlayedGames(result.accessToken);
+    return { success: true, games: games };
+  } catch (err) {
     return { success: false, error: getErrorMessage(err) };
   }
 }

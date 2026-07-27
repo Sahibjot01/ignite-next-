@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { getUserPlayedGames } from "psn-api";
 
 const ALGORITHM = "aes-256-gcm";
 
@@ -32,4 +33,22 @@ export function decrypt(packed: string): string {
   const plaintextFinalChunk = decipher.final("utf-8");
 
   return plaintextChunk + plaintextFinalChunk;
+}
+
+export async function getPsnPlayedGames(accessToken: string) {
+  const result = await getUserPlayedGames({ accessToken: accessToken }, "me", {
+    categories: "ps4_game,ps5_native_game",
+    limit: 10,
+    offset: 0,
+  });
+  console.log(result.titles[0].playDuration);
+  return result.titles;
+}
+
+export function formatPlayDuration(duration: string): string {
+  const match = duration.match(/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/);
+
+  const hours = Number(match?.[1] ?? 0);
+  const minutes = Number(match?.[2] ?? 0);
+  return `${hours}h ${minutes}m`;
 }
