@@ -3,7 +3,8 @@ const PRICE_QUERY_HASH =
   "aa9fb87d783a1df3822327f4126c3d1a0660b5654a77cf405c2779c443a67d0d";
 const DEFAULT_LOCALE = "en-CA";
 const PRICE_OPERATION_NAME = "productRetrieveForCtasWithPrice";
-
+const X_ALGOLIA_APPLICATION_ID = "ULS2J1QB99";
+const X_ALGOLIA_API_KEY = "c9b00aa8404c1c9b7409428a8d411007";
 interface GraphQLResponse<T> {
   data: T;
   errors?: { message: string }[];
@@ -43,6 +44,15 @@ interface PsStoreProduct {
 
 interface ProductRetrieveResponse {
   productRetrieve: PsStoreProduct | null;
+}
+
+interface PsStoreSearchHit {
+  conceptId: string;
+  skuIds: string[];
+}
+
+interface SearchRetrieveResponse {
+  results: { hits: PsStoreSearchHit[] }[];
 }
 
 async function fetchPsStore<T>(
@@ -89,9 +99,14 @@ export async function getProductPrice(
   productId: string,
   locale: string = DEFAULT_LOCALE,
 ): Promise<PsStorePrice | null> {
+  // Accept a raw skuId (e.g. from searchPsStoreProducts) as well as a bare
+  // productId — a skuId is always `productId-U00X`, and the price query
+  // only accepts the shorter productId form.
+  const resolvedProductId = productId.replace(/-U\d+$/, "");
+
   const { productRetrieve } = await fetchPsStore<ProductRetrieveResponse>(
     PRICE_OPERATION_NAME,
-    { productId },
+    { productId: resolvedProductId },
     PRICE_QUERY_HASH,
     locale,
   );
@@ -111,10 +126,40 @@ export async function getProductPrice(
   }
 
   const cheapestCta = productRetrieve.webctas.reduce((cheapest, cta) =>
-    cta.price.discountedValue < cheapest.price.discountedValue
-      ? cta
-      : cheapest,
+    cta.price.discountedValue < cheapest.price.discountedValue ? cta : cheapest,
   );
 
   return cheapestCta.price;
+}
+
+export async function searchPsStoreProducts(
+  query: string,
+  locale: string = DEFAULT_LOCALE,
+): Promise<PsStoreSearchHit[]> {
+  const fullUrl = `https://${X_ALGOLIA_APPLICATION_ID.toLowerCase()}-dsn.algolia.net/1/indexes/*/queries`;
+  const reqHeader = new Headers();
+  reqHeader.set("Content-Type", "application/json");
+  reqHeader.set("x-algolia-application-id", X_ALGOLIA_APPLICATION_ID);
+  reqHeader.set("x-algolia-api-key", X_ALGOLIA_API_KEY);
+  const resp = await fetch(fullUrl, {
+    method: "POST",
+    headers: reqHeader,
+    body: JSON.stringify({
+      requests: [
+        {
+          indexName: `crawler_${locale.toLowerCase()}`,
+          query: query,
+          params: "hitsPerPage=30&filters=pageType%3Agame",
+        },
+      ],
+    }),
+    next: {
+      revalidate: 60,
+    },
+  });
+  if (!resp.ok) {
+    throw new Error(`Failed to fetch from algolia search: ${resp.statusText}`);
+  }
+  const result = (await resp.json()) as SearchRetrieveResponse;
+  return result.results[0].hits;
 }
