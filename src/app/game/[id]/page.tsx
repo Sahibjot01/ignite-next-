@@ -2,9 +2,8 @@ import { notFound } from "next/navigation";
 import Navbar from "@/components/navbar";
 import GameDetail from "@/components/game-detail";
 import { getGameDetails, getGameScreenshots } from "@/lib/rawg";
-import { getDealsByGameTitle } from "@/lib/cheapshark";
+import { getPsStorePriceByName } from "@/lib/ps-store";
 import { getWishlistStatus, getPriceAlert } from "@/lib/actions";
-import { createSupabaseAdminClient } from "@/lib/supabaseClient";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -32,22 +31,12 @@ export default async function GameDetailPage(props: PageProps) {
     notFound();
   }
 
-  // Fetch auth-based states in parallel
-  const [isWishlisted, priceAlert, dealsInfo] = await Promise.all([
+  // Fetch auth-based states and the live PS Store price in parallel
+  const [isWishlisted, priceAlert, psPrice] = await Promise.all([
     getWishlistStatus(game.id),
     getPriceAlert(game.id),
-    getDealsByGameTitle(game.name),
+    getPsStorePriceByName(game.name),
   ]);
-
-  // Fetch all historical price snapshots for the chart
-  const supabase = createSupabaseAdminClient();
-  const { data: snapshotsData } = await supabase
-    .from("price_snapshots")
-    .select("*")
-    .eq("game_id", game.id)
-    .order("recorded_at", { ascending: true });
-
-  const snapshots = snapshotsData || [];
 
   return (
     <div className="flex flex-col min-h-screen bg-void text-ink">
@@ -58,8 +47,7 @@ export default async function GameDetailPage(props: PageProps) {
           game={game}
           screenshots={screenshots}
           initialWishlistStatus={isWishlisted}
-          dealsInfo={dealsInfo}
-          snapshots={snapshots}
+          psPrice={psPrice}
           initialPriceAlert={priceAlert}
         />
       </main>

@@ -4,40 +4,43 @@ import Navbar from "@/components/navbar";
 import WishlistList from "@/components/wishlist-list";
 import SectionHead from "@/components/section-head";
 import { getUserWishlist } from "@/lib/actions";
-import { getDealsByGameTitle } from "@/lib/cheapshark";
+import { getPsStorePriceByName } from "@/lib/ps-store";
+import { createSupabaseAdminClient } from "@/lib/supabaseClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function WishlistPage() {
   const { userId } = await auth();
-  
+
   if (!userId) {
     redirect("/sign-in");
   }
 
   // Fetch the user's wishlist
   const wishlist = await getUserWishlist();
+  const supabase = createSupabaseAdminClient();
 
-  // Load active price deals for each wishlisted game in parallel on the server
-  const wishlistWithDeals = await Promise.all(
+  // For each wishlisted game, resolve its live PS Store price and its
+  // tracked price history in parallel. The wishlist is a small, bounded
+  // list (unlike the home page grid), so a search + price call per item
+  // here is fine — it's the same "worth it because it's bounded" call
+  // already made for the detail page.
+  const wishlistWithPricing = await Promise.all(
     wishlist.map(async (item) => {
-      try {
-        const deals = await getDealsByGameTitle(item.game_name);
-        return {
-          ...item,
-          cheapestPrice: deals ? deals.cheapestPrice : null,
-          isOnSale: deals && deals.deals.length > 0 ? deals.deals[0].isOnSale : false,
-          savings: deals && deals.deals.length > 0 ? deals.deals[0].savings : null,
-        };
-      } catch (error) {
-        console.error(`Error loading deals for ${item.game_name}:`, error);
-        return {
-          ...item,
-          cheapestPrice: null,
-          isOnSale: false,
-          savings: null,
-        };
-      }
+      const [psPrice, snapshotsResult] = await Promise.all([
+        getPsStorePriceByName(item.game_name),
+        supabase
+          .from("price_snapshots")
+          .select("*")
+          .eq("game_id", item.game_id)
+          .order("recorded_at", { ascending: true }),
+      ]);
+
+      return {
+        ...item,
+        psPrice,
+        snapshots: snapshotsResult.data || [],
+      };
     })
   );
 
@@ -54,7 +57,7 @@ export default async function WishlistPage() {
           />
         </div>
 
-        <WishlistList initialItems={wishlistWithDeals} />
+        <WishlistList initialItems={wishlistWithPricing} />
       </main>
     </div>
   );

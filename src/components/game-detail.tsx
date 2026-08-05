@@ -5,19 +5,18 @@ import Image from "next/image";
 import {
   Star,
   Heart,
-  ExternalLink,
   Sparkles,
   Check,
   Plus,
   Loader2,
+  Gamepad2,
 } from "lucide-react";
 import { useUser, SignInButton } from "@clerk/nextjs";
 import { motion, type Variants } from "motion/react";
 import { Game, GameScreenshot, imageResizeURL } from "@/lib/rawg";
-import { CheapSharkGameInfo, getDealRedirectUrl } from "@/lib/cheapshark";
+import { type PsStorePrice } from "@/lib/ps-store";
 import { toggleWishlist, PriceAlert } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
-import PriceChart, { type Snapshot } from "./price-chart";
 import PriceAlertForm from "./price-alert-form";
 import { toast } from "sonner";
 
@@ -27,8 +26,7 @@ interface GameDetailProps {
   game: Game;
   screenshots: GameScreenshot[];
   initialWishlistStatus: boolean;
-  dealsInfo: CheapSharkGameInfo | null;
-  snapshots: Snapshot[];
+  psPrice: PsStorePrice | null;
   initialPriceAlert: PriceAlert | null;
 }
 const getPlatformIcon = (platformName: string) => {
@@ -42,8 +40,7 @@ export default function GameDetail({
   game,
   screenshots,
   initialWishlistStatus,
-  dealsInfo,
-  snapshots,
+  psPrice,
   initialPriceAlert,
 }: GameDetailProps) {
   const { isSignedIn } = useUser();
@@ -278,76 +275,72 @@ export default function GameDetail({
           )}
         </motion.div>
 
-        {/* CheapShark Store Deals */}
+        {/* PlayStation Store Price */}
         <motion.div variants={itemVariants}>
           <div className="clip-notch-sm border border-hairline bg-surface p-6">
             <div className="mb-4 flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-amber-400" />
               <h3 className="font-display text-sm font-semibold text-ink">
-                Best PC Store Deals
+                PlayStation Store Price
               </h3>
             </div>
 
-            {!dealsInfo || dealsInfo.deals.length === 0 ? (
+            {!psPrice ? (
               <p className="py-4 text-center text-xs text-ink-faint">
-                No active store deals found.
+                Not available on the PlayStation Store.
               </p>
+            ) : psPrice.isTiedToSubscription ? (
+              <div className="flex items-start gap-3 rounded-lg border border-hairline bg-surface-2/40 p-3">
+                <Gamepad2 className="mt-0.5 h-4.5 w-4.5 shrink-0 text-coral" />
+                <div>
+                  <p className="text-sm font-bold text-coral">
+                    Included with PS Plus
+                  </p>
+                  {psPrice.displayUpsellText && (
+                    <p className="mt-1 text-xs text-ink-faint">
+                      {psPrice.displayUpsellText}
+                    </p>
+                  )}
+                </div>
+              </div>
             ) : (
-              <div className="space-y-3.5">
-                {dealsInfo.deals.slice(0, 5).map((deal) => (
-                  <a
-                    key={deal.dealID}
-                    href={getDealRedirectUrl(deal.dealID)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group flex items-center justify-between rounded-lg border border-hairline bg-surface-2/40 p-3 transition-all duration-200 hover:border-hairline-strong hover:bg-surface-2"
-                  >
-                    <div className="space-y-1">
-                      <p className="text-xs font-bold text-ink-dim group-hover:text-ink">
-                        {deal.storeName}
-                      </p>
-                      {deal.isOnSale && (
-                        <span className="inline-block rounded bg-coral-soft px-1.5 py-0.5 text-[10px] font-bold text-coral">
-                          {deal.savings}% OFF
-                        </span>
-                      )}
-                    </div>
+              <div className="flex items-center justify-between rounded-lg border border-hairline bg-surface-2/40 p-3">
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-ink-dim">
+                    PlayStation Store
+                  </p>
+                  {psPrice.discountedValue < psPrice.basePriceValue && (
+                    <span className="inline-block rounded bg-coral-soft px-1.5 py-0.5 text-[10px] font-bold text-coral">
+                      {psPrice.savingTag || "On Sale"}
+                    </span>
+                  )}
+                </div>
 
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <p className="text-sm font-black text-emerald-400">
-                          ${deal.price.toFixed(2)}
-                        </p>
-                        {deal.isOnSale && (
-                          <p className="text-[10px] text-ink-faint line-through">
-                            ${deal.normalPrice.toFixed(2)}
-                          </p>
-                        )}
-                      </div>
-                      <ExternalLink className="h-3.5 w-3.5 text-ink-faint transition-colors group-hover:text-ink-dim" />
-                    </div>
-                  </a>
-                ))}
+                <div className="text-right">
+                  <p className="text-sm font-black text-emerald-400">
+                    {psPrice.discountedPrice}
+                  </p>
+                  {psPrice.discountedValue < psPrice.basePriceValue && (
+                    <p className="text-[10px] text-ink-faint line-through">
+                      {psPrice.basePrice}
+                    </p>
+                  )}
+                </div>
               </div>
             )}
           </div>
         </motion.div>
 
-        {/* Price Alerts Card */}
-        {dealsInfo && dealsInfo.deals.length > 0 && (
+        {/* Price Alerts Card — only meaningful for a real purchasable price */}
+        {psPrice && !psPrice.isTiedToSubscription && psPrice.discountedValue > 0 && (
           <motion.div variants={itemVariants}>
             <PriceAlertForm
               gameId={game.id}
-              currentPrice={dealsInfo.deals[0].price}
+              currentPrice={psPrice.discountedValue / 100}
               initialAlert={initialPriceAlert}
             />
           </motion.div>
         )}
-
-        {/* Price History Chart */}
-        <motion.div variants={itemVariants}>
-          <PriceChart snapshots={snapshots} cheapsharkMatched={!!dealsInfo} />
-        </motion.div>
       </div>
     </motion.div>
   );

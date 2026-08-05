@@ -9,7 +9,7 @@ interface GraphQLResponse<T> {
   errors?: { message: string }[];
 }
 
-interface PsStorePrice {
+export interface PsStorePrice {
   applicability: string;
   basePrice: string;
   basePriceValue: number;
@@ -22,6 +22,8 @@ interface PsStorePrice {
   isTiedToSubscription: boolean;
   serviceBranding: string[];
   savingTag: string;
+  displayDiscountText: string;
+  displayUpsellText: string | null;
   history: {
     launchPrice: string | null;
     lowestRecentPrice: string | null;
@@ -161,4 +163,23 @@ export async function searchPsStoreProducts(
   }
   const result = (await resp.json()) as SearchRetrieveResponse;
   return result.results[0].hits;
+}
+
+// Resolves a RAWG game name straight to a live PS Store price — the
+// search-then-price chain callers actually want, rather than making every
+// caller repeat the "take the first hit's first skuId" step by hand.
+export async function getPsStorePriceByName(
+  gameName: string,
+  locale: string = DEFAULT_LOCALE,
+): Promise<PsStorePrice | null> {
+  try {
+    const hits = await searchPsStoreProducts(gameName, locale);
+    if (hits.length === 0 || hits[0].skuIds.length === 0) {
+      return null;
+    }
+    return await getProductPrice(hits[0].skuIds[0], locale);
+  } catch (error) {
+    console.error(`Error resolving PS Store price for ${gameName}:`, error);
+    return null;
+  }
 }

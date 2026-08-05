@@ -21,16 +21,16 @@ export interface Snapshot {
 
 interface PriceChartProps {
   snapshots: Snapshot[];
-  cheapsharkMatched: boolean;
+  hasPriceData: boolean;
 }
 
-export default function PriceChart({ snapshots, cheapsharkMatched }: PriceChartProps) {
-  if (!cheapsharkMatched) {
+export default function PriceChart({ snapshots, hasPriceData }: PriceChartProps) {
+  if (!hasPriceData) {
     return (
       <div className="clip-notch-sm flex h-60 flex-col items-center justify-center border border-hairline bg-surface p-6 text-center text-ink-faint">
         <p className="font-semibold text-ink-dim">Pricing unavailable for this title</p>
         <p className="mt-1 max-w-xs text-xs text-ink-faint">
-          We couldn&apos;t find a matching PC deal for this game on CheapShark.
+          We couldn&apos;t find this game on the PlayStation Store.
         </p>
       </div>
     );
@@ -74,7 +74,7 @@ export default function PriceChart({ snapshots, cheapsharkMatched }: PriceChartP
   return (
     <div className="clip-notch-sm border border-hairline bg-surface p-6">
       <div className="mb-4">
-        <h3 className="font-display text-sm font-semibold text-ink">Price History (USD)</h3>
+        <h3 className="font-display text-sm font-semibold text-ink">Price History (CAD)</h3>
         <p className="text-xs text-ink-faint">Tracked price fluctuations over time</p>
       </div>
       <div className="h-60 w-full">
