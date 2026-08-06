@@ -12,6 +12,7 @@ import {
   UserPlayedGamesResponse,
 } from "psn-api";
 import { decrypt, encrypt, getPsnPlayedGames } from "./psn";
+import { searchPsStoreProducts } from "./ps-store";
 export interface WishlistItem {
   id: string;
   user_id: string;
@@ -148,12 +149,18 @@ export async function toggleWishlist(
       revalidatePath("/wishlist");
       return { success: true, added: false };
     } else {
-      // Add it
+      let skuId: string | null = null;
+      try {
+        skuId = (await searchPsStoreProducts(gameName))[0]?.skuIds[0] ?? null;
+      } catch (err) {
+        console.error("Error resolving PS Store sku for", gameName, err);
+      }
       const { error: insertError } = await supabase.from("wishlists").insert({
         user_id: userId,
         game_id: gameId,
         game_name: gameName,
         game_image: gameImage,
+        ps_store_sku_id: skuId,
       });
 
       if (insertError) throw insertError;

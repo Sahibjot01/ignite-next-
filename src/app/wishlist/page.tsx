@@ -4,7 +4,8 @@ import Navbar from "@/components/navbar";
 import WishlistList from "@/components/wishlist-list";
 import SectionHead from "@/components/section-head";
 import { getUserWishlist } from "@/lib/actions";
-import { getPsStorePriceByName } from "@/lib/ps-store";
+import { getPsStorePriceByName, type PsStoreProductPrice} from "@/lib/ps-store";
+
 import { createSupabaseAdminClient } from "@/lib/supabaseClient";
 
 export const dynamic = "force-dynamic";
