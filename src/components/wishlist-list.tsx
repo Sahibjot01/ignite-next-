@@ -3,11 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Heart, Trash2, ExternalLink } from "lucide-react";
+import { Heart, Trash2, ExternalLink, TrendingUp, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { toggleWishlist } from "@/lib/actions";
 import { imageResizeURL } from "@/lib/rawg";
+import { type PsStorePrice } from "@/lib/ps-store";
+import PriceChart, { type Snapshot } from "./price-chart";
 import { toast } from "sonner";
 
 const EASE = [0.2, 0.7, 0.3, 1] as const;
@@ -19,9 +21,8 @@ interface WishlistWithDealsItem {
   game_name: string;
   game_image: string;
   added_at: string;
-  cheapestPrice: number | null;
-  isOnSale: boolean;
-  savings: number | null;
+  psPrice: PsStorePrice | null;
+  snapshots: Snapshot[];
 }
 
 interface WishlistListProps {
@@ -30,6 +31,19 @@ interface WishlistListProps {
 
 export default function WishlistList({ initialItems }: WishlistListProps) {
   const [items, setItems] = useState<WishlistWithDealsItem[]>(initialItems);
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
+
+  const toggleHistory = (gameId: number) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(gameId)) {
+        next.delete(gameId);
+      } else {
+        next.add(gameId);
+      }
+      return next;
+    });
+  };
 
   const handleRemove = async (gameId: number, name: string) => {
     // Optimistically remove from state
@@ -127,20 +141,29 @@ export default function WishlistList({ initialItems }: WishlistListProps) {
 
                     <div className="mt-4 flex items-center justify-between border-t border-hairline pt-3 text-sm">
                       <div>
-                        {item.cheapestPrice !== null ? (
-                          <div className="space-y-0.5">
-                            <p className="text-xs text-ink-faint">Cheapest Price</p>
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-black text-emerald-400">
-                                ${item.cheapestPrice.toFixed(2)}
+                        {item.psPrice ? (
+                          item.psPrice.isTiedToSubscription ? (
+                            <div className="space-y-0.5">
+                              <p className="text-xs text-ink-faint">Pricing</p>
+                              <span className="text-xs font-bold text-coral">
+                                Included with PS Plus
                               </span>
-                              {item.isOnSale && item.savings && (
-                                <span className="rounded bg-coral-soft px-1 py-0.5 text-[9px] font-bold text-coral">
-                                  -{item.savings}%
-                                </span>
-                              )}
                             </div>
-                          </div>
+                          ) : (
+                            <div className="space-y-0.5">
+                              <p className="text-xs text-ink-faint">PS Store Price</p>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-black text-emerald-400">
+                                  {item.psPrice.discountedPrice}
+                                </span>
+                                {item.psPrice.discountedValue < item.psPrice.basePriceValue && (
+                                  <span className="rounded bg-coral-soft px-1 py-0.5 text-[9px] font-bold text-coral">
+                                    {item.psPrice.savingTag || "Sale"}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          )
                         ) : (
                           <div className="space-y-0.5">
                             <p className="text-xs text-ink-faint">Pricing</p>
@@ -158,6 +181,44 @@ export default function WishlistList({ initialItems }: WishlistListProps) {
                     </div>
                   </div>
                 </Link>
+
+                {/* Price History toggle — outside the Link so it doesn't navigate */}
+                <div className="border-t border-hairline px-5 py-3">
+                  <button
+                    type="button"
+                    onClick={() => toggleHistory(item.game_id)}
+                    className="flex w-full items-center justify-between text-xs font-semibold text-ink-dim transition-colors hover:text-ink"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <TrendingUp className="h-3.5 w-3.5" />
+                      Price History
+                    </span>
+                    <ChevronDown
+                      className={`h-3.5 w-3.5 transition-transform duration-200 ${
+                        expandedIds.has(item.game_id) ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  <AnimatePresence initial={false}>
+                    {expandedIds.has(item.game_id) && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.25, ease: EASE }}
+                        className="overflow-hidden"
+                      >
+                        <div className="pt-3">
+                          <PriceChart
+                            snapshots={item.snapshots}
+                            hasPriceData={!!item.psPrice}
+                          />
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </article>
             </motion.div>
           );
