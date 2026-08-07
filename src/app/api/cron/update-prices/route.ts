@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabaseClient";
-import { getDealsByGameTitle } from "@/lib/cheapshark";
+import { getProductPrice } from "@/lib/ps-store";
 import { getErrorMessage } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     // 🔹 2. Fetch all unique games from the wishlist to update
     const { data: wishlistedGames, error: wishlistError } = await supabase
       .from("wishlists")
-      .select("game_id, game_name, game_image");
+      .select("game_id, game_name, game_image, ps_store_sku_id");
 
     if (wishlistError) throw wishlistError;
     if (!wishlistedGames || wishlistedGames.length === 0) {
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
     // Deduplicate games by game_id
     const uniqueGames = Array.from(
       new Map(wishlistedGames.map((g) => [g.game_id, g])).values(),
-    );
+    ).filter((g) => g.ps_store_sku_id);
 
     console.log(
       `Running daily price updates for ${uniqueGames.length} unique games.`,
@@ -40,15 +40,14 @@ export async function GET(req: NextRequest) {
     // 🔹 3. Loop over unique games and fetch current deals
     for (const game of uniqueGames) {
       try {
-        const dealsInfo = await getDealsByGameTitle(game.game_name);
+        const price = await getProductPrice(game.ps_store_sku_id);
 
-        if (!dealsInfo || dealsInfo.deals.length === 0) {
-          console.log(`No pricing found for ${game.game_name}`);
+        if (!price?.purchasePrice) {
+          console.log(`No purchasable price found for ${game.game_name}`);
           continue;
         }
 
-        const cheapestDeal = dealsInfo.deals[0];
-        const currentPrice = cheapestDeal.price;
+        const currentPrice = price.purchasePrice.discountedValue / 100;
 
         // Record a new snapshot if the price is different from the last recorded one
         const { data: lastSnapshot } = await supabase
@@ -62,11 +61,12 @@ export async function GET(req: NextRequest) {
         if (!lastSnapshot || Number(lastSnapshot.price) !== currentPrice) {
           await supabase.from("price_snapshots").insert({
             game_id: game.game_id,
-            cheapshark_id: dealsInfo.gameID,
-            store_name: cheapestDeal.storeName,
+            store_name: "PlayStation Store",
             price: currentPrice,
-            normal_price: cheapestDeal.normalPrice,
-            is_on_sale: cheapestDeal.isOnSale,
+            normal_price: price.purchasePrice.basePriceValue / 100,
+            is_on_sale:
+              price.purchasePrice.discountedValue <
+              price.purchasePrice.basePriceValue,
           });
           console.log(
             `Updated price for ${game.game_name} to $${currentPrice}`,
@@ -92,7 +92,7 @@ export async function GET(req: NextRequest) {
               await supabase.from("notifications").insert({
                 user_id: alert.user_id,
                 game_id: game.game_id,
-                message: `🔥 Price Drop Alert! ${game.game_name} has dropped to $${currentPrice.toFixed(2)} (Target: $${target.toFixed(2)}) on ${cheapestDeal.storeName}!`,
+                message: `🔥 Price Drop Alert! ${game.game_name} has dropped to $${currentPrice.toFixed(2)} (Target: $${target.toFixed(2)}) on PlayStation Store!`,
               });
 
               // Deactivate alert until re-armed
