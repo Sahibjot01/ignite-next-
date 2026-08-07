@@ -1,0 +1,1 @@
+ALTER TABLE price_snapshots DROP COLUMN cheapshark_id;

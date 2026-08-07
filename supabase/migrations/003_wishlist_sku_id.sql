@@ -1,0 +1,1 @@
+ALTER TABLE wishlists ADD COLUMN ps_store_sku_id TEXT;

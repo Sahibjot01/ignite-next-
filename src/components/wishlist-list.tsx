@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { toggleWishlist } from "@/lib/actions";
 import { imageResizeURL } from "@/lib/rawg";
-import { type PsStorePrice } from "@/lib/ps-store";
+import { type PsStoreProductPrice } from "@/lib/ps-store";
 import PriceChart, { type Snapshot } from "./price-chart";
 import { toast } from "sonner";
 
@@ -21,7 +21,7 @@ interface WishlistWithDealsItem {
   game_name: string;
   game_image: string;
   added_at: string;
-  psPrice: PsStorePrice | null;
+  psPrice: PsStoreProductPrice | null;
   snapshots: Snapshot[];
 }
 
@@ -140,36 +140,38 @@ export default function WishlistList({ initialItems }: WishlistListProps) {
                     </div>
 
                     <div className="mt-4 flex items-center justify-between border-t border-hairline pt-3 text-sm">
-                      <div>
-                        {item.psPrice ? (
-                          item.psPrice.isTiedToSubscription ? (
+                      <div className="space-y-1">
+                        {!item.psPrice?.purchasePrice &&
+                          !item.psPrice?.subscriptionPrice && (
                             <div className="space-y-0.5">
                               <p className="text-xs text-ink-faint">Pricing</p>
-                              <span className="text-xs font-bold text-coral">
-                                Included with PS Plus
+                              <span className="text-xs font-semibold italic text-ink-faint">
+                                Unavailable
                               </span>
                             </div>
-                          ) : (
-                            <div className="space-y-0.5">
-                              <p className="text-xs text-ink-faint">PS Store Price</p>
-                              <div className="flex items-center gap-1.5">
-                                <span className="font-black text-emerald-400">
-                                  {item.psPrice.discountedPrice}
-                                </span>
-                                {item.psPrice.discountedValue < item.psPrice.basePriceValue && (
-                                  <span className="rounded bg-coral-soft px-1 py-0.5 text-[9px] font-bold text-coral">
-                                    {item.psPrice.savingTag || "Sale"}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          )
-                        ) : (
+                          )}
+                        {item.psPrice?.subscriptionPrice && (
                           <div className="space-y-0.5">
                             <p className="text-xs text-ink-faint">Pricing</p>
-                            <span className="text-xs font-semibold italic text-ink-faint">
-                              Unavailable
+                            <span className="text-xs font-bold text-coral">
+                              Included with PS Plus
                             </span>
+                          </div>
+                        )}
+                        {item.psPrice?.purchasePrice && (
+                          <div className="space-y-0.5">
+                            <p className="text-xs text-ink-faint">PS Store Price</p>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-black text-emerald-400">
+                                {item.psPrice.purchasePrice.discountedPrice}
+                              </span>
+                              {item.psPrice.purchasePrice.discountedValue <
+                                item.psPrice.purchasePrice.basePriceValue && (
+                                <span className="rounded bg-coral-soft px-1 py-0.5 text-[9px] font-bold text-coral">
+                                  {item.psPrice.purchasePrice.savingTag || "Sale"}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>

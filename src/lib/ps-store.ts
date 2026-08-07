@@ -56,6 +56,11 @@ interface SearchRetrieveResponse {
   results: { hits: PsStoreSearchHit[] }[];
 }
 
+export interface PsStoreProductPrice {
+  purchasePrice: PsStorePrice | null;
+  subscriptionPrice: PsStorePrice | null;
+}
+
 async function fetchPsStore<T>(
   operationName: string,
   variables: Record<string, string>,
@@ -99,7 +104,7 @@ async function fetchPsStore<T>(
 export async function getProductPrice(
   productId: string,
   locale: string = DEFAULT_LOCALE,
-): Promise<PsStorePrice | null> {
+): Promise<PsStoreProductPrice | null> {
   // Accept a raw skuId (e.g. from searchPsStoreProducts) as well as a bare
   // productId — a skuId is always `productId-U00X`, and the price query
   // only accepts the shorter productId form.
@@ -118,19 +123,27 @@ export async function getProductPrice(
 
   // Prefer the PS Plus-included option if one exists, otherwise
   // fall back to the cheapest actual purchase option.
-  const psPlusCta = productRetrieve.webctas.find(
+  const subscriptionCta = productRetrieve.webctas.find(
     (cta) => cta.price.isTiedToSubscription,
   );
 
-  if (psPlusCta) {
-    return psPlusCta.price;
-  }
-
-  const cheapestCta = productRetrieve.webctas.reduce((cheapest, cta) =>
-    cta.price.discountedValue < cheapest.price.discountedValue ? cta : cheapest,
+  const purchaseCtas = productRetrieve.webctas.filter(
+    (cta) => !cta.price.isTiedToSubscription,
   );
 
-  return cheapestCta.price;
+  const cheapestPurchaseCta =
+    purchaseCtas.length > 0
+      ? purchaseCtas.reduce((cheapest, cta) =>
+          cta.price.discountedValue < cheapest.price.discountedValue
+            ? cta
+            : cheapest,
+        )
+      : null;
+
+  return {
+    purchasePrice: cheapestPurchaseCta?.price ?? null,
+    subscriptionPrice: subscriptionCta?.price ?? null,
+  };
 }
 
 export async function searchPsStoreProducts(
@@ -171,7 +184,7 @@ export async function searchPsStoreProducts(
 export async function getPsStorePriceByName(
   gameName: string,
   locale: string = DEFAULT_LOCALE,
-): Promise<PsStorePrice | null> {
+): Promise<PsStoreProductPrice | null> {
   try {
     const hits = await searchPsStoreProducts(gameName, locale);
     if (hits.length === 0 || hits[0].skuIds.length === 0) {
