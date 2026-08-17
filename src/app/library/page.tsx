@@ -36,10 +36,13 @@ export default async function LibraryPage() {
     const result = await getLibraryGames();
 
     if (!result.success) {
+      const sessionExpired = result.error.includes("session expired");
       content = (
         <div className="text-center py-16">
           <p className="text-ink-dim mb-4">
-            Couldn&apos;t load your library: {result.error}
+            {sessionExpired
+              ? result.error
+              : `Couldn't load your library: ${result.error}`}
           </p>
           <Link
             href="/settings"

@@ -433,6 +433,15 @@ export async function getFreshAccessToken(): Promise<TokenResult> {
     const refresh_token = decrypt(row?.refresh_token_encrypted);
     const authTokenResp =
       await exchangeRefreshTokenForAuthTokens(refresh_token);
+
+    if (!authTokenResp.accessToken || !authTokenResp.refreshToken) {
+      return {
+        success: false,
+        error:
+          "Your PlayStation session expired — please relink your account in Settings.",
+      };
+    }
+
     const newRefreshToken = encrypt(authTokenResp.refreshToken);
 
     const { error: secErr } = await supabase
