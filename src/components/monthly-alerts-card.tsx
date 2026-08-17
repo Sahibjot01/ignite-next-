@@ -3,10 +3,21 @@
 import { useState } from "react";
 import { BellRing } from "lucide-react";
 import ToggleSwitch from "@/components/ui/toggle-switch";
+import { setMonthlyAlertPreference } from "@/lib/actions";
 
-export default function MonthlyAlertsCard() {
-  const [enabled, setEnabled] = useState(false);
-
+export default function MonthlyAlertsCard({
+  initialEnabled,
+}: {
+  initialEnabled: boolean;
+}) {
+  const [enabled, setEnabled] = useState(initialEnabled);
+  const handleAlert = async (newValue: boolean) => {
+    setEnabled(newValue);
+    const res = await setMonthlyAlertPreference(newValue);
+    if (!res.success) {
+      setEnabled(!newValue);
+    }
+  };
   return (
     <div className="clip-notch-sm border border-hairline bg-surface p-6">
       <div className="flex items-center justify-between gap-4">
@@ -17,14 +28,14 @@ export default function MonthlyAlertsCard() {
               Monthly Free Games
             </h4>
             <p className="text-xs text-ink-faint">
-              Get an in-app alert the moment this month&apos;s Essential
-              lineup drops.
+              Get an in-app alert the moment this month&apos;s Essential lineup
+              drops.
             </p>
           </div>
         </div>
         <ToggleSwitch
           checked={enabled}
-          onCheckedChange={setEnabled}
+          onCheckedChange={handleAlert}
           label="Toggle monthly free games alert"
         />
       </div>

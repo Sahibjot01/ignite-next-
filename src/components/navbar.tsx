@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Search, Heart, Settings, Library } from "lucide-react";
+import { Search, Heart, Settings, Library, Gift } from "lucide-react";
 import { SignInButton, UserButton, useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -77,6 +77,17 @@ export default function Navbar() {
 
         {/* Navigation & Auth */}
         <div className="flex items-center gap-4">
+          <Link href="/monthly-games">
+            <Button
+              variant="ghost"
+              className="flex items-center gap-2 hover:bg-surface hover:text-ink rounded-full text-ink-dim"
+            >
+              <Gift className="h-4 w-4 text-coral" />
+              <span className="hidden sm:inline font-semibold">
+                Free This Month
+              </span>
+            </Button>
+          </Link>
           {isSignedIn ? (
             <>
               <Link href="/wishlist">

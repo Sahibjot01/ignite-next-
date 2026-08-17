@@ -3,13 +3,19 @@
 import { useState } from "react";
 import { BellRing, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { setMonthlyAlertPreference } from "@/lib/actions";
 
 export default function MonthlyGamesAlertNudge() {
   const [dismissed, setDismissed] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
 
   if (dismissed) return null;
-
+  const handleSubscribe = async () => {
+    const res = await setMonthlyAlertPreference(true);
+    if (res.success) {
+      setSubscribed(true);
+    }
+  };
   return (
     <div className="clip-notch-sm border border-hairline bg-surface-2 p-4 flex items-center gap-4">
       <div className="h-10 w-10 rounded-full bg-coral-soft flex items-center justify-center shrink-0 animate-ignite-pulse">
@@ -34,7 +40,7 @@ export default function MonthlyGamesAlertNudge() {
         ) : (
           <Button
             size="sm"
-            onClick={() => setSubscribed(true)}
+            onClick={handleSubscribe}
             className="bg-coral hover:bg-[#ff5858] text-void rounded-full font-bold h-8 text-xs px-4"
           >
             Notify Me

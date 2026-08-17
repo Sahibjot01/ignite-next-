@@ -57,7 +57,7 @@ type TokenResult =
 type LibraryGamesResult =
   | { success: true; games: UserPlayedGamesResponse["titles"] }
   | { success: false; error: string };
-// 🔹 1. WISHLIST ACTIONS
+// 🔹 1. WISHLIST ACTIONx
 
 // Get all wishlisted games for the current user
 export async function getUserWishlist(): Promise<WishlistItem[]> {
@@ -463,5 +463,57 @@ export async function getLibraryGames(): Promise<LibraryGamesResult> {
     return { success: true, games: games };
   } catch (err) {
     return { success: false, error: getErrorMessage(err) };
+  }
+}
+
+export async function getMonthlyAlertPreference(): Promise<boolean> {
+  const { userId } = await auth();
+  if (!userId) return false;
+  try {
+    const supabase = await createClerkSupabaseClient();
+
+    const { data, error } = await supabase
+      .from("monthly_alert_preferences")
+      .select("in_app_enabled")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    if (data == null) {
+      return false;
+    }
+    return data.in_app_enabled;
+  } catch (err) {
+    console.error("Error getting monthly preference:", err);
+    return false;
+  }
+}
+
+export async function setMonthlyAlertPreference(
+  enabled: boolean,
+): Promise<{ success: boolean; error?: string }> {
+  const { userId } = await auth();
+  if (!userId) return { success: false, error: "Authentication required" };
+
+  try {
+    const supabase = await createClerkSupabaseClient();
+
+    const { error } = await supabase.from("monthly_alert_preferences").upsert(
+      {
+        user_id: userId,
+        in_app_enabled: enabled,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" },
+    );
+
+    if (error) throw error;
+
+    revalidatePath(`/settings`);
+    return { success: true };
+  } catch (error) {
+    console.error("Error setting monthly alert preference:", error);
+    return { success: false, error: getErrorMessage(error) };
   }
 }

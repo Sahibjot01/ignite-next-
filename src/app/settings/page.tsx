@@ -4,7 +4,7 @@ import Navbar from "@/components/navbar";
 import PsnLinkCard from "@/components/psn-link-card";
 import MonthlyAlertsCard from "@/components/monthly-alerts-card";
 import SectionHead from "@/components/section-head";
-import { getPsnAccountStatus } from "@/lib/actions";
+import { getPsnAccountStatus, getMonthlyAlertPreference } from "@/lib/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +16,7 @@ export default async function SettingsPage() {
   }
 
   const psnAccount = await getPsnAccountStatus();
+  const monthlyAlertEnabled = await getMonthlyAlertPreference();
 
   return (
     <div className="flex flex-col min-h-screen bg-void text-ink">
@@ -33,7 +34,7 @@ export default async function SettingsPage() {
 
         <div className="space-y-6">
           <PsnLinkCard initialAccount={psnAccount} />
-          <MonthlyAlertsCard />
+          <MonthlyAlertsCard initialEnabled={monthlyAlertEnabled} />
         </div>
       </main>
     </div>
