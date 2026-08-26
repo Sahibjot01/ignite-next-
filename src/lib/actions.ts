@@ -35,10 +35,11 @@ export interface PriceAlert {
 export interface NotificationItem {
   id: string;
   user_id: string;
-  game_id: number;
+  game_id: number | null;
   message: string;
   is_read: boolean;
   created_at: string;
+  external_url: string | null;
 }
 
 export interface PsnAccount {
