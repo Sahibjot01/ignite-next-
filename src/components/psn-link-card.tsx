@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import {
@@ -24,15 +24,12 @@ interface PsnLinkCardProps {
   initialAccount: PsnStatus;
 }
 
-export default function PsnLinkCard({ initialAccount }: PsnLinkCardProps) {
+export default function PsnLinkCard({
+  initialAccount: account,
+}: PsnLinkCardProps) {
   const router = useRouter();
-  const [account, setAccount] = useState(initialAccount);
   const [npsso, setNpsso] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    setAccount(initialAccount);
-  }, [initialAccount]);
 
   const handleLink = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,8 +81,7 @@ export default function PsnLinkCard({ initialAccount }: PsnLinkCardProps) {
             PlayStation Account
           </h4>
           <p className="text-xs text-ink-faint">
-            Link your PSN account to unlock library import and free-game
-            alerts
+            Link your PSN account to unlock library import and free-game alerts
           </p>
         </div>
       </div>
@@ -123,8 +119,8 @@ export default function PsnLinkCard({ initialAccount }: PsnLinkCardProps) {
             </Button>
           </div>
           <p className="text-[10px] text-ink-faint italic">
-            Unlinking removes your stored session — you can relink anytime
-            with a fresh NPSSO value.
+            Unlinking removes your stored session — you can relink anytime with
+            a fresh NPSSO value.
           </p>
         </div>
       ) : (
