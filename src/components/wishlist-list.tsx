@@ -11,6 +11,7 @@ import { imageResizeURL } from "@/lib/rawg";
 import { type PsStoreProductPrice } from "@/lib/ps-store";
 import PriceChart, { type Snapshot } from "./price-chart";
 import { toast } from "sonner";
+import { format } from "date-fns";
 
 const EASE = [0.2, 0.7, 0.3, 1] as const;
 
@@ -135,7 +136,7 @@ export default function WishlistList({ initialItems }: WishlistListProps) {
                         {item.game_name}
                       </h3>
                       <p className="mt-1.5 text-xs text-ink-faint">
-                        Added: {new Date(item.added_at).toLocaleDateString()}
+                        Added: {format(new Date(item.added_at), "MMM d, yyyy")}
                       </p>
                     </div>
 

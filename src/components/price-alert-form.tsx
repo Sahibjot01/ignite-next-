@@ -16,7 +16,7 @@ interface PriceAlertFormProps {
 
 export default function PriceAlertForm({ gameId, currentPrice, initialAlert }: PriceAlertFormProps) {
   const { isSignedIn } = useUser();
-  const [alert, setAlert] = useState<PriceAlert | null>(initialAlert);
+  const [activeAlertPrice, setActiveAlertPrice] = useState<number | null>(initialAlert?.target_price ?? null);
   const [targetPrice, setTargetPrice] = useState(
     initialAlert ? String(initialAlert.target_price) : String(Math.round(currentPrice * 0.8 * 100) / 100)
   );
@@ -37,16 +37,7 @@ export default function PriceAlertForm({ gameId, currentPrice, initialAlert }: P
       const res = await setPriceAlert(gameId, price);
       if (res.success) {
         toast.success(`We will notify you when price drops below $${price}!`);
-        // Refresh alert local state
-        setAlert({
-          id: "",
-          user_id: "",
-          game_id: gameId,
-          target_price: price,
-          is_active: true,
-          triggered_at: null,
-          created_at: new Date().toISOString(),
-        });
+        setActiveAlertPrice(price);
       } else {
         toast.error(res.error || "Failed to set alert");
       }
@@ -65,7 +56,7 @@ export default function PriceAlertForm({ gameId, currentPrice, initialAlert }: P
       const res = await deletePriceAlert(gameId);
       if (res.success) {
         toast.success("Price alert removed");
-        setAlert(null);
+        setActiveAlertPrice(null);
         setTargetPrice(String(Math.round(currentPrice * 0.8 * 100) / 100));
       } else {
         toast.error(res.error || "Failed to remove alert");
@@ -106,13 +97,13 @@ export default function PriceAlertForm({ gameId, currentPrice, initialAlert }: P
         </div>
       </div>
 
-      {alert ? (
+      {activeAlertPrice ? (
         <div className="space-y-4">
           <div className="flex items-center justify-between rounded-lg border border-hairline bg-surface-2/50 p-3">
             <div>
               <p className="text-xs text-ink-faint">Active Target Price Alert</p>
               <p className="mt-0.5 text-lg font-black text-coral">
-                ${alert.target_price.toFixed(2)}
+                ${activeAlertPrice.toFixed(2)}
               </p>
             </div>
             <Button

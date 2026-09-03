@@ -19,6 +19,7 @@ import {
   NotificationItem,
 } from "@/lib/actions";
 import { toast } from "sonner";
+import { format } from "date-fns";
 
 export default function NotificationsBell() {
   const { isSignedIn } = useUser();
@@ -131,7 +132,7 @@ export default function NotificationsBell() {
                   </p>
                 </div>
                 <span className="text-[10px] text-ink-faint pl-4 block mt-1">
-                  {new Date(notification.created_at).toLocaleDateString()}
+                  {format(new Date(notification.created_at), "MMM d, yyyy")}
                 </span>
               </DropdownMenuItem>
             ))

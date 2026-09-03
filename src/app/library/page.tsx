@@ -62,7 +62,7 @@ export default async function LibraryPage() {
             >
               {game.name}
               {formatPlayDuration(game.playDuration)}
-              {format(new Date(game.lastPlayedDateTime), "MMM d,yyyy")}
+              {format(new Date(game.lastPlayedDateTime), "MMM d, yyyy")}
             </li>
           ))}
         </ul>
