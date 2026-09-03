@@ -14,19 +14,11 @@ interface PriceAlertFormProps {
   initialAlert: PriceAlert | null;
 }
 
-export default function PriceAlertForm({
-  gameId,
-  currentPrice,
-  initialAlert,
-}: PriceAlertFormProps) {
+export default function PriceAlertForm({ gameId, currentPrice, initialAlert }: PriceAlertFormProps) {
   const { isSignedIn } = useUser();
-  const [activeAlertPrice, setActiveAlertPrice] = useState<number | null>(
-    initialAlert?.target_price ?? null,
-  );
+  const [activeAlertPrice, setActiveAlertPrice] = useState<number | null>(initialAlert?.target_price ?? null);
   const [targetPrice, setTargetPrice] = useState(
-    initialAlert
-      ? String(initialAlert.target_price)
-      : String(Math.round(currentPrice * 0.8 * 100) / 100),
+    initialAlert ? String(initialAlert.target_price) : String(Math.round(currentPrice * 0.8 * 100) / 100)
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -45,7 +37,6 @@ export default function PriceAlertForm({
       const res = await setPriceAlert(gameId, price);
       if (res.success) {
         toast.success(`We will notify you when price drops below $${price}!`);
-        // Refresh alert local state
         setActiveAlertPrice(price);
       } else {
         toast.error(res.error || "Failed to set alert");
@@ -82,12 +73,9 @@ export default function PriceAlertForm({
       <div className="clip-notch-sm flex flex-col items-center gap-4 border border-hairline bg-surface p-6 text-center">
         <Bell className="h-6 w-6 text-ink-faint" />
         <div>
-          <h4 className="font-display text-sm font-semibold text-ink">
-            Want price alerts?
-          </h4>
+          <h4 className="font-display text-sm font-semibold text-ink">Want price alerts?</h4>
           <p className="mt-1 max-w-xs text-xs text-ink-faint">
-            Sign in to track deal details and set alerts when the price drops
-            below your target!
+            Sign in to track deal details and set alerts when the price drops below your target!
           </p>
         </div>
         <SignInButton mode="modal">
@@ -104,12 +92,8 @@ export default function PriceAlertForm({
       <div className="mb-4 flex items-center gap-2.5">
         <Bell className="h-5 w-5 text-coral" />
         <div>
-          <h4 className="font-display text-sm font-semibold text-ink">
-            Set Price Alert
-          </h4>
-          <p className="text-xs text-ink-faint">
-            Get notified immediately upon a price drop
-          </p>
+          <h4 className="font-display text-sm font-semibold text-ink">Set Price Alert</h4>
+          <p className="text-xs text-ink-faint">Get notified immediately upon a price drop</p>
         </div>
       </div>
 
@@ -117,9 +101,7 @@ export default function PriceAlertForm({
         <div className="space-y-4">
           <div className="flex items-center justify-between rounded-lg border border-hairline bg-surface-2/50 p-3">
             <div>
-              <p className="text-xs text-ink-faint">
-                Active Target Price Alert
-              </p>
+              <p className="text-xs text-ink-faint">Active Target Price Alert</p>
               <p className="mt-0.5 text-lg font-black text-coral">
                 ${activeAlertPrice.toFixed(2)}
               </p>
@@ -140,8 +122,7 @@ export default function PriceAlertForm({
             </Button>
           </div>
           <p className="text-center text-[10px] italic text-ink-faint">
-            Currently tracking. If the lowest store price falls below your
-            target, we will send an alert here.
+            Currently tracking. If the lowest store price falls below your target, we will send an alert here.
           </p>
         </div>
       ) : (
@@ -174,8 +155,7 @@ export default function PriceAlertForm({
             </Button>
           </div>
           <p className="text-[10px] text-ink-faint">
-            Suggested price target: 20% off current deal price ($
-            {Math.round(currentPrice * 0.8 * 100) / 100}).
+            Suggested price target: 20% off current deal price (${Math.round(currentPrice * 0.8 * 100) / 100}).
           </p>
         </form>
       )}
