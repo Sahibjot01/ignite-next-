@@ -3,7 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Heart, Trash2, ExternalLink, TrendingUp, ChevronDown } from "lucide-react";
+import {
+  Heart,
+  Trash2,
+  ExternalLink,
+  TrendingUp,
+  ChevronDown,
+} from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { toggleWishlist } from "@/lib/actions";
@@ -11,6 +17,7 @@ import { imageResizeURL } from "@/lib/rawg";
 import { type PsStoreProductPrice } from "@/lib/ps-store";
 import PriceChart, { type Snapshot } from "./price-chart";
 import { toast } from "sonner";
+import { format } from "date-fns";
 
 const EASE = [0.2, 0.7, 0.3, 1] as const;
 
@@ -74,7 +81,8 @@ export default function WishlistList({ initialItems }: WishlistListProps) {
           Your wishlist is empty
         </h3>
         <p className="mt-1 max-w-sm text-xs text-ink-faint">
-          Browse popular, upcoming, or new games and add them to your wishlist to track price deals and set alerts.
+          Browse popular, upcoming, or new games and add them to your wishlist
+          to track price deals and set alerts.
         </p>
         <Link href="/" className="mt-6">
           <Button className="rounded-full bg-coral px-6 font-bold text-void hover:bg-[#ff5858]">
@@ -89,7 +97,8 @@ export default function WishlistList({ initialItems }: WishlistListProps) {
     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
       <AnimatePresence mode="popLayout">
         {items.map((item) => {
-          const resizedImage = imageResizeURL(item.game_image, 640) || "/icons/gamepad.svg";
+          const resizedImage =
+            imageResizeURL(item.game_image, 640) || "/icons/gamepad.svg";
 
           return (
             <motion.div
@@ -114,7 +123,10 @@ export default function WishlistList({ initialItems }: WishlistListProps) {
                   </Button>
                 </div>
 
-                <Link href={`/game/${item.game_id}`} className="flex h-full flex-1 flex-col">
+                <Link
+                  href={`/game/${item.game_id}`}
+                  className="flex h-full flex-1 flex-col"
+                >
                   {/* Game Cover Image */}
                   <div className="card-hover-art art-scanline relative aspect-[16/10] w-full shrink-0 overflow-hidden bg-surface-2">
                     <Image
@@ -135,7 +147,7 @@ export default function WishlistList({ initialItems }: WishlistListProps) {
                         {item.game_name}
                       </h3>
                       <p className="mt-1.5 text-xs text-ink-faint">
-                        Added: {new Date(item.added_at).toLocaleDateString()}
+                        Added: {format(new Date(item.added_at), "MMM d, yyyy")}
                       </p>
                     </div>
 
@@ -160,7 +172,9 @@ export default function WishlistList({ initialItems }: WishlistListProps) {
                         )}
                         {item.psPrice?.purchasePrice && (
                           <div className="space-y-0.5">
-                            <p className="text-xs text-ink-faint">PS Store Price</p>
+                            <p className="text-xs text-ink-faint">
+                              PS Store Price
+                            </p>
                             <div className="flex items-center gap-1.5">
                               <span className="font-black text-emerald-400">
                                 {item.psPrice.purchasePrice.discountedPrice}
@@ -168,7 +182,8 @@ export default function WishlistList({ initialItems }: WishlistListProps) {
                               {item.psPrice.purchasePrice.discountedValue <
                                 item.psPrice.purchasePrice.basePriceValue && (
                                 <span className="rounded bg-coral-soft px-1 py-0.5 text-[9px] font-bold text-coral">
-                                  {item.psPrice.purchasePrice.savingTag || "Sale"}
+                                  {item.psPrice.purchasePrice.savingTag ||
+                                    "Sale"}
                                 </span>
                               )}
                             </div>

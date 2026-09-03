@@ -19,6 +19,7 @@ import {
   NotificationItem,
 } from "@/lib/actions";
 import { toast } from "sonner";
+import { format } from "date-fns";
 
 export default function NotificationsBell() {
   const { isSignedIn } = useUser();
@@ -45,7 +46,7 @@ export default function NotificationsBell() {
     const res = await markNotificationAsRead(id);
     if (res.success) {
       setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
+        prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)),
       );
       setUnreadCount((c) => Math.max(0, c - 1));
     }
@@ -66,7 +67,11 @@ export default function NotificationsBell() {
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button variant="ghost" size="icon" className="relative text-ink-dim hover:bg-surface hover:text-ink rounded-full" />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative text-ink-dim hover:bg-surface hover:text-ink rounded-full"
+          />
         }
       >
         <Bell className="h-5 w-5" />
@@ -76,7 +81,10 @@ export default function NotificationsBell() {
           </span>
         )}
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80 bg-surface-2 border-hairline-strong text-ink">
+      <DropdownMenuContent
+        align="end"
+        className="w-80 bg-surface-2 border-hairline-strong text-ink"
+      >
         <div className="flex items-center justify-between px-4 py-2">
           <span className="font-bold text-sm text-ink">Notifications</span>
           {unreadCount > 0 && (
@@ -103,17 +111,19 @@ export default function NotificationsBell() {
                 className="flex flex-col items-start gap-1 p-3 focus:bg-surface-3 cursor-pointer border-b border-hairline last:border-b-0"
                 onClick={() => handleMarkAsRead(notification.id)}
               >
-                  <div className="flex items-start gap-2">
-                    {!notification.is_read && (
-                      <span className="mt-1.5 h-2 w-2 rounded-full bg-coral shrink-0" />
-                    )}
-                    <p className={`text-xs ${!notification.is_read ? 'font-semibold text-ink' : 'text-ink-dim'}`}>
-                      {notification.message}
-                    </p>
-                  </div>
-                  <span className="text-[10px] text-ink-faint pl-4 block mt-1">
-                    {new Date(notification.created_at).toLocaleDateString()}
-                  </span>
+                <div className="flex items-start gap-2">
+                  {!notification.is_read && (
+                    <span className="mt-1.5 h-2 w-2 rounded-full bg-coral shrink-0" />
+                  )}
+                  <p
+                    className={`text-xs ${!notification.is_read ? "font-semibold text-ink" : "text-ink-dim"}`}
+                  >
+                    {notification.message}
+                  </p>
+                </div>
+                <span className="text-[10px] text-ink-faint pl-4 block mt-1">
+                  {format(new Date(notification.created_at), "MMM d, yyyy")}
+                </span>
               </DropdownMenuItem>
             ))
           )}
