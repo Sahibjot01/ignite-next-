@@ -1,57 +1,38 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Star, Heart } from "lucide-react";
 import { useUser, SignInButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Game, imageResizeURL } from "@/lib/rawg";
-import { toggleWishlist } from "@/lib/actions";
-import { toast } from "sonner";
+import { useWishlistToggle } from "@/hooks/use-wishlist-toggle";
 
 interface GameCardProps {
   game: Game;
   isWishlisted: boolean;
 }
 
-export default function GameCard({ game, isWishlisted: initialWishlist }: GameCardProps) {
+export default function GameCard({
+  game,
+  isWishlisted: initialWishlist,
+}: GameCardProps) {
   const { isSignedIn } = useUser();
-  const [isWishlisted, setIsWishlisted] = useState(initialWishlist);
-  const [isMutating, setIsMutating] = useState(false);
-
+  const { isMutating, isWishlisted, toggle } = useWishlistToggle(
+    game.id,
+    game.name,
+    game.background_image,
+    initialWishlist,
+  );
   const handleWishlistToggle = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-
-    if (!isSignedIn) return; // Managed by SignInButton wrapper for guests
-
-    setIsMutating(true);
-    // Optimistic UI update
-    setIsWishlisted(!isWishlisted);
-
-    try {
-      const res = await toggleWishlist(game.id, game.name, game.background_image);
-      if (res.success) {
-        toast.success(
-          res.added
-            ? `Added ${game.name} to wishlist!`
-            : `Removed ${game.name} from wishlist.`
-        );
-      } else {
-        // Revert on failure
-        setIsWishlisted(isWishlisted);
-        toast.error(res.error || "Failed to update wishlist");
-      }
-    } catch {
-      setIsWishlisted(isWishlisted);
-      toast.error("An error occurred");
-    } finally {
-      setIsMutating(false);
-    }
+    if (!isSignedIn) return; // Handled by Clerk SignInButton for guests
+    toggle();
   };
 
-  const resizedImage = imageResizeURL(game.background_image, 640) || "/icons/gamepad.svg";
+  const resizedImage =
+    imageResizeURL(game.background_image, 640) || "/icons/gamepad.svg";
 
   return (
     <Link href={`/game/${game.id}`} className="block h-full reveal">
@@ -122,8 +103,8 @@ export default function GameCard({ game, isWishlisted: initialWishlist }: GameCa
                   game.metacritic >= 75
                     ? "bg-green-950/80 text-green-400 border border-green-800"
                     : game.metacritic >= 50
-                    ? "bg-amber-950/80 text-amber-400 border border-amber-800"
-                    : "bg-red-950/80 text-red-400 border border-red-800"
+                      ? "bg-amber-950/80 text-amber-400 border border-amber-800"
+                      : "bg-red-950/80 text-red-400 border border-red-800"
                 }`}
               >
                 {game.metacritic}

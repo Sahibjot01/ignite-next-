@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Image from "next/image";
 import {
   Star,
@@ -15,10 +14,10 @@ import { useUser, SignInButton } from "@clerk/nextjs";
 import { motion, type Variants } from "motion/react";
 import { Game, GameScreenshot, imageResizeURL } from "@/lib/rawg";
 import { type PsStoreProductPrice } from "@/lib/ps-store";
-import { toggleWishlist, PriceAlert } from "@/lib/actions";
+import { PriceAlert } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
 import PriceAlertForm from "./price-alert-form";
-import { toast } from "sonner";
+import { useWishlistToggle } from "@/hooks/use-wishlist-toggle";
 
 const EASE = [0.2, 0.7, 0.3, 1] as const;
 
@@ -44,37 +43,17 @@ export default function GameDetail({
   initialPriceAlert,
 }: GameDetailProps) {
   const { isSignedIn } = useUser();
-  const [isWishlisted, setIsWishlisted] = useState(initialWishlistStatus);
-  const [isMutating, setIsMutating] = useState(false);
-
-  const handleWishlistToggle = async () => {
+  const { isMutating, isWishlisted, toggle } = useWishlistToggle(
+    game.id,
+    game.name,
+    game.background_image,
+    initialWishlistStatus,
+  );
+  const handleWishlistToggle = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (!isSignedIn) return; // Handled by Clerk SignInButton for guests
-
-    setIsMutating(true);
-    setIsWishlisted(!isWishlisted);
-
-    try {
-      const res = await toggleWishlist(
-        game.id,
-        game.name,
-        game.background_image,
-      );
-      if (res.success) {
-        toast.success(
-          res.added
-            ? `Added ${game.name} to wishlist!`
-            : `Removed ${game.name} from wishlist.`,
-        );
-      } else {
-        setIsWishlisted(isWishlisted);
-        toast.error(res.error || "Failed to update wishlist");
-      }
-    } catch {
-      setIsWishlisted(isWishlisted);
-      toast.error("An error occurred");
-    } finally {
-      setIsMutating(false);
-    }
+    toggle();
   };
 
   const renderStars = (rating: number) => {
