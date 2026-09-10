@@ -1,6 +1,14 @@
 "use client";
 
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
 import { format } from "date-fns";
 import { TrendingDown } from "lucide-react";
 
@@ -24,11 +32,16 @@ interface PriceChartProps {
   hasPriceData: boolean;
 }
 
-export default function PriceChart({ snapshots, hasPriceData }: PriceChartProps) {
+export default function PriceChart({
+  snapshots,
+  hasPriceData,
+}: PriceChartProps) {
   if (!hasPriceData) {
     return (
       <div className="flex h-64 flex-col items-center justify-center text-center text-ink-faint">
-        <p className="font-semibold text-ink-dim">Pricing unavailable for this title</p>
+        <p className="font-semibold text-ink-dim">
+          Pricing unavailable for this title
+        </p>
         <p className="mt-1 max-w-xs text-xs text-ink-faint">
           We couldn&apos;t find this game on the PlayStation Store.
         </p>
@@ -42,7 +55,8 @@ export default function PriceChart({ snapshots, hasPriceData }: PriceChartProps)
         <TrendingDown className="mb-2 h-8 w-8 animate-pulse text-ink-faint" />
         <p className="font-semibold text-ink-dim">Tracking started today</p>
         <p className="mt-1 max-w-xs text-xs text-ink-faint">
-          No historical data yet. We just recorded the first price snapshot. Check back tomorrow for price trends!
+          No historical data yet. We just recorded the first price snapshot.
+          Check back tomorrow for price trends!
         </p>
       </div>
     );
@@ -52,9 +66,13 @@ export default function PriceChart({ snapshots, hasPriceData }: PriceChartProps)
     return (
       <div className="flex h-64 flex-col items-center justify-center text-center text-ink-faint">
         <TrendingDown className="mb-2 h-8 w-8 text-ink-faint" />
-        <p className="font-semibold text-ink-dim">1 price point recorded (${snapshots[0].price})</p>
+        <p className="font-semibold text-ink-dim">
+          1 price point recorded (${snapshots[0].price})
+        </p>
         <p className="mt-1 max-w-xs text-xs text-ink-faint">
-          Tracking started on {format(new Date(snapshots[0].recorded_at), "MMM d, yyyy")}. Keep checking back for price changes!
+          Tracking started on{" "}
+          {format(new Date(snapshots[0].recorded_at), "MMM d, yyyy")}. Keep
+          checking back for price changes!
         </p>
       </div>
     );
@@ -74,13 +92,24 @@ export default function PriceChart({ snapshots, hasPriceData }: PriceChartProps)
   return (
     <div>
       <div className="mb-4">
-        <h3 className="font-display text-sm font-semibold text-ink">Price History (CAD)</h3>
-        <p className="text-xs text-ink-faint">Tracked price fluctuations over time</p>
+        <h3 className="font-display text-sm font-semibold text-ink">
+          Price History (CAD)
+        </h3>
+        <p className="text-xs text-ink-faint">
+          Tracked price fluctuations over time
+        </p>
       </div>
       <div className="h-64 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} vertical={false} />
+          <LineChart
+            data={data}
+            margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+          >
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke={GRID_COLOR}
+              vertical={false}
+            />
             <XAxis
               dataKey="date"
               stroke={AXIS_COLOR}
@@ -120,6 +149,9 @@ export default function PriceChart({ snapshots, hasPriceData }: PriceChartProps)
               dataKey="price"
               stroke={CORAL}
               strokeWidth={3}
+              animationBegin={150}
+              animationDuration={700}
+              animationEasing="linear"
               dot={{ stroke: CORAL, strokeWidth: 1, r: 4, fill: VOID }}
               activeDot={{ r: 6, fill: CORAL }}
             />
