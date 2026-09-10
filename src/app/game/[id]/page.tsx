@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Navbar from "@/components/navbar";
 import GameDetail from "@/components/game-detail";
 import { getGameDetails, getGameScreenshots } from "@/lib/rawg";
-import { getPsStorePriceByName } from "@/lib/ps-store";
+import { getPsStoreEditionsByName } from "@/lib/ps-store";
 import { getWishlistStatus, getPriceAlert } from "@/lib/actions";
 
 interface PageProps {
@@ -31,11 +31,11 @@ export default async function GameDetailPage(props: PageProps) {
     notFound();
   }
 
-  // Fetch auth-based states and the live PS Store price in parallel
-  const [isWishlisted, priceAlert, psPrice] = await Promise.all([
+  // Fetch auth-based states and the live PS Store editions in parallel
+  const [isWishlisted, priceAlert, editions] = await Promise.all([
     getWishlistStatus(game.id),
     getPriceAlert(game.id),
-    getPsStorePriceByName(game.name),
+    getPsStoreEditionsByName(game.name),
   ]);
 
   return (
@@ -47,7 +47,7 @@ export default async function GameDetailPage(props: PageProps) {
           game={game}
           screenshots={screenshots}
           initialWishlistStatus={isWishlisted}
-          psPrice={psPrice}
+          editions={editions}
           initialPriceAlert={priceAlert}
         />
       </main>

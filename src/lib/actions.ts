@@ -1,7 +1,10 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
-import { createClerkSupabaseClient } from "./supabaseClient";
+import {
+  createClerkSupabaseClient,
+  createSupabaseAdminClient,
+} from "./supabaseClient";
 import { revalidatePath } from "next/cache";
 import { getErrorMessage } from "./utils";
 import {
@@ -12,7 +15,7 @@ import {
   UserPlayedGamesResponse,
 } from "psn-api";
 import { decrypt, encrypt, getPsnPlayedGames } from "./psn";
-import { searchPsStoreProducts } from "./ps-store";
+import { getPsStoreEditionsByName } from "./ps-store";
 export interface WishlistItem {
   id: string;
   user_id: string;
@@ -52,8 +55,7 @@ export interface PsnAccount {
 }
 
 type TokenResult =
-  | { success: true; accessToken: string }
-  | { success: false; error: string };
+  { success: true; accessToken: string } | { success: false; error: string };
 
 type LibraryGamesResult =
   | { success: true; games: UserPlayedGamesResponse["titles"] }
@@ -114,10 +116,20 @@ export async function toggleWishlist(
   gameId: number,
   gameName: string,
   gameImage: string,
-): Promise<{ success: boolean; added: boolean; error?: string }> {
+): Promise<{
+  success: boolean;
+  added: boolean;
+  skuResolved: boolean;
+  error?: string;
+}> {
   const { userId } = await auth();
   if (!userId) {
-    return { success: false, added: false, error: "Authentication required" };
+    return {
+      success: false,
+      added: false,
+      skuResolved: false,
+      error: "Authentication required",
+    };
   }
 
   try {
@@ -148,13 +160,33 @@ export async function toggleWishlist(
 
       revalidatePath(`/game/${gameId}`);
       revalidatePath("/wishlist");
-      return { success: true, added: false };
+      return { success: true, added: false, skuResolved: false };
     } else {
+      // Tracks the Standard edition specifically (resolveEditions sorts it
+      // first when identifiable) - price history/alerts stay locked to one
+      // edition per game until per-edition tracking gets its own schema.
       let skuId: string | null = null;
       try {
-        skuId = (await searchPsStoreProducts(gameName))[0]?.skuIds[0] ?? null;
+        const editions = await getPsStoreEditionsByName(gameName);
+        skuId = editions[0]?.skuId ?? null;
       } catch (err) {
         console.error("Error resolving PS Store sku for", gameName, err);
+      }
+      if (!skuId) {
+        const adminSupabase = createSupabaseAdminClient();
+        const { error: notifError } = await adminSupabase
+          .from("notifications")
+          .insert({
+            user_id: userId,
+            game_id: gameId,
+            message: `Couldn't find PS Store pricing for ${gameName} — price tracking won't work for this title.`,
+          });
+        if (notifError) {
+          console.error(
+            "Error inserting SKU-not-found notification:",
+            notifError,
+          );
+        }
       }
       const { error: insertError } = await supabase.from("wishlists").insert({
         user_id: userId,
@@ -168,11 +200,16 @@ export async function toggleWishlist(
 
       revalidatePath(`/game/${gameId}`);
       revalidatePath("/wishlist");
-      return { success: true, added: true };
+      return { success: true, added: true, skuResolved: skuId !== null };
     }
   } catch (error) {
     console.error("Error toggling wishlist:", error);
-    return { success: false, added: false, error: getErrorMessage(error) };
+    return {
+      success: false,
+      added: false,
+      skuResolved: false,
+      error: getErrorMessage(error),
+    };
   }
 }
 
