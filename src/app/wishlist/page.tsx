@@ -4,7 +4,7 @@ import Navbar from "@/components/navbar";
 import WishlistList from "@/components/wishlist-list";
 import SectionHead from "@/components/section-head";
 import { getUserWishlist } from "@/lib/actions";
-import { getPsStorePriceByName, type PsStoreProductPrice} from "@/lib/ps-store";
+import { getPsStoreEditionsByName } from "@/lib/ps-store";
 
 import { createSupabaseAdminClient } from "@/lib/supabaseClient";
 
@@ -28,8 +28,8 @@ export default async function WishlistPage() {
   // already made for the detail page.
   const wishlistWithPricing = await Promise.all(
     wishlist.map(async (item) => {
-      const [psPrice, snapshotsResult] = await Promise.all([
-        getPsStorePriceByName(item.game_name),
+      const [editions, snapshotsResult] = await Promise.all([
+        getPsStoreEditionsByName(item.game_name),
         supabase
           .from("price_snapshots")
           .select("*")
@@ -39,10 +39,10 @@ export default async function WishlistPage() {
 
       return {
         ...item,
-        psPrice,
+        editions,
         snapshots: snapshotsResult.data || [],
       };
-    })
+    }),
   );
 
   return (

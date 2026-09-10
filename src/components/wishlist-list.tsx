@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { toggleWishlist } from "@/lib/actions";
 import { imageResizeURL } from "@/lib/rawg";
-import { type PsStoreProductPrice } from "@/lib/ps-store";
+import { type PsStoreEdition } from "@/lib/ps-store";
 import PriceChart, { type Snapshot } from "./price-chart";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -29,7 +29,7 @@ interface WishlistWithDealsItem {
   game_name: string;
   game_image: string;
   added_at: string;
-  psPrice: PsStoreProductPrice | null;
+  editions: PsStoreEdition[];
   snapshots: Snapshot[];
 }
 
@@ -39,6 +39,12 @@ interface WishlistListProps {
 
 export default function WishlistList({ initialItems }: WishlistListProps) {
   const [items, setItems] = useState<WishlistWithDealsItem[]>(initialItems);
+  // Which edition is being viewed per card — defaults to index 0 (Standard,
+  // when identifiable) until the user switches. Price history/alerts always
+  // track Standard regardless of what's being viewed here.
+  const [selectedEditionIndex, setSelectedEditionIndex] = useState<
+    Record<number, number>
+  >({});
 
   const handleRemove = async (gameId: number, name: string) => {
     // Optimistically remove from state
@@ -69,7 +75,8 @@ export default function WishlistList({ initialItems }: WishlistListProps) {
           Your wishlist is empty
         </h3>
         <p className="mt-1 max-w-sm text-xs text-ink-faint">
-          Browse popular, upcoming, or new games and add them to your wishlist to track price deals and set alerts.
+          Browse popular, upcoming, or new games and add them to your wishlist
+          to track price deals and set alerts.
         </p>
         <Link href="/" className="mt-6">
           <Button className="rounded-full bg-coral px-6 font-bold text-void hover:bg-[#ff5858]">
@@ -84,7 +91,11 @@ export default function WishlistList({ initialItems }: WishlistListProps) {
     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
       <AnimatePresence mode="popLayout">
         {items.map((item) => {
-          const resizedImage = imageResizeURL(item.game_image, 640) || "/icons/gamepad.svg";
+          const resizedImage =
+            imageResizeURL(item.game_image, 640) || "/icons/gamepad.svg";
+          const editionIndex = selectedEditionIndex[item.game_id] ?? 0;
+          const selectedEdition = item.editions[editionIndex];
+          const psPrice = selectedEdition?.price ?? null;
 
           return (
             <motion.div
@@ -109,7 +120,10 @@ export default function WishlistList({ initialItems }: WishlistListProps) {
                   </Button>
                 </div>
 
-                <Link href={`/game/${item.game_id}`} className="flex h-full flex-1 flex-col">
+                <Link
+                  href={`/game/${item.game_id}`}
+                  className="flex h-full flex-1 flex-col"
+                >
                   {/* Game Cover Image */}
                   <div className="card-hover-art art-scanline relative aspect-[16/10] w-full shrink-0 overflow-hidden bg-surface-2">
                     <Image
@@ -136,8 +150,8 @@ export default function WishlistList({ initialItems }: WishlistListProps) {
 
                     <div className="mt-4 flex items-center justify-between border-t border-hairline pt-3 text-sm">
                       <div className="space-y-1">
-                        {!item.psPrice?.purchasePrice &&
-                          !item.psPrice?.subscriptionPrice && (
+                        {!psPrice?.purchasePrice &&
+                          !psPrice?.subscriptionPrice && (
                             <div className="space-y-0.5">
                               <p className="text-xs text-ink-faint">Pricing</p>
                               <span className="text-xs font-semibold italic text-ink-faint">
@@ -145,7 +159,7 @@ export default function WishlistList({ initialItems }: WishlistListProps) {
                               </span>
                             </div>
                           )}
-                        {item.psPrice?.subscriptionPrice && (
+                        {psPrice?.subscriptionPrice && (
                           <div className="space-y-0.5">
                             <p className="text-xs text-ink-faint">Pricing</p>
                             <span className="text-xs font-bold text-coral">
@@ -153,17 +167,19 @@ export default function WishlistList({ initialItems }: WishlistListProps) {
                             </span>
                           </div>
                         )}
-                        {item.psPrice?.purchasePrice && (
+                        {psPrice?.purchasePrice && (
                           <div className="space-y-0.5">
-                            <p className="text-xs text-ink-faint">PS Store Price</p>
+                            <p className="text-xs text-ink-faint">
+                              PS Store Price
+                            </p>
                             <div className="flex items-center gap-1.5">
                               <span className="font-black text-emerald-400">
-                                {item.psPrice.purchasePrice.discountedPrice}
+                                {psPrice.purchasePrice.discountedPrice}
                               </span>
-                              {item.psPrice.purchasePrice.discountedValue <
-                                item.psPrice.purchasePrice.basePriceValue && (
+                              {psPrice.purchasePrice.discountedValue <
+                                psPrice.purchasePrice.basePriceValue && (
                                 <span className="rounded bg-coral-soft px-1 py-0.5 text-[9px] font-bold text-coral">
-                                  {item.psPrice.purchasePrice.savingTag || "Sale"}
+                                  {psPrice.purchasePrice.savingTag || "Sale"}
                                 </span>
                               )}
                             </div>
@@ -179,14 +195,37 @@ export default function WishlistList({ initialItems }: WishlistListProps) {
                   </div>
                 </Link>
 
-                {/* Price History — outside the Link so it doesn't navigate */}
-                <div className="border-t border-hairline px-5 py-3">
+                {/* Edition switcher — outside the Link, a <select> nested in an
+                    <a> is invalid HTML and would fight the card's own navigation */}
+                {item.editions.length > 1 && (
+                  <div className="border-t border-hairline px-5 py-2">
+                    <select
+                      value={editionIndex}
+                      onChange={(e) =>
+                        setSelectedEditionIndex((prev) => ({
+                          ...prev,
+                          [item.game_id]: Number(e.target.value),
+                        }))
+                      }
+                      className="w-full rounded border border-hairline-strong bg-surface-2 px-2 py-1 text-[11px] font-semibold text-ink-dim"
+                    >
+                      {item.editions.map((edition, i) => (
+                        <option key={edition.skuId} value={i}>
+                          {edition.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Price History + PS Store buy link — outside the Link so neither navigates internally */}
+                <div className="flex items-center gap-3 border-t border-hairline px-5 py-3">
                   <Dialog>
                     <DialogTrigger
                       render={
                         <button
                           type="button"
-                          className="flex w-full items-center gap-1.5 text-xs font-semibold text-ink-dim transition-colors hover:text-ink"
+                          className="flex flex-1 items-center gap-1.5 text-xs font-semibold text-ink-dim transition-colors hover:text-ink"
                         />
                       }
                     >
@@ -199,14 +238,38 @@ export default function WishlistList({ initialItems }: WishlistListProps) {
                           {item.game_name}
                         </DialogTitle>
                       </DialogHeader>
+                      {item.editions.length > 1 && (
+                        <p className="px-6 text-xs text-ink-faint">
+                          Price history tracks the Standard Edition, not the
+                          edition currently selected on the card.
+                        </p>
+                      )}
                       <div className="px-6 pb-6">
                         <PriceChart
                           snapshots={item.snapshots}
-                          hasPriceData={!!item.psPrice}
+                          hasPriceData={item.editions.length > 0}
                         />
                       </div>
                     </DialogContent>
                   </Dialog>
+
+                  {psPrice?.conceptUrl && (
+                    <a
+                      href={psPrice.conceptUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group flex shrink-0 items-center gap-1.5 rounded-full border border-hairline-strong bg-surface-2 px-3 py-1.5 text-xs font-semibold text-ink-dim transition-colors duration-200 hover:border-coral hover:bg-coral hover:text-void"
+                    >
+                      <Image
+                        src="/icons/playstation.svg"
+                        alt=""
+                        width={12}
+                        height={12}
+                        className="opacity-80 invert transition-opacity group-hover:opacity-100"
+                      />
+                      Buy
+                    </a>
+                  )}
                 </div>
               </article>
             </motion.div>

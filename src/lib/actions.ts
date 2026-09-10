@@ -15,7 +15,7 @@ import {
   UserPlayedGamesResponse,
 } from "psn-api";
 import { decrypt, encrypt, getPsnPlayedGames } from "./psn";
-import { searchPsStoreProducts } from "./ps-store";
+import { getPsStoreEditionsByName } from "./ps-store";
 export interface WishlistItem {
   id: string;
   user_id: string;
@@ -55,8 +55,7 @@ export interface PsnAccount {
 }
 
 type TokenResult =
-  | { success: true; accessToken: string }
-  | { success: false; error: string };
+  { success: true; accessToken: string } | { success: false; error: string };
 
 type LibraryGamesResult =
   | { success: true; games: UserPlayedGamesResponse["titles"] }
@@ -163,9 +162,13 @@ export async function toggleWishlist(
       revalidatePath("/wishlist");
       return { success: true, added: false, skuResolved: false };
     } else {
+      // Tracks the Standard edition specifically (resolveEditions sorts it
+      // first when identifiable) - price history/alerts stay locked to one
+      // edition per game until per-edition tracking gets its own schema.
       let skuId: string | null = null;
       try {
-        skuId = (await searchPsStoreProducts(gameName))[0]?.skuIds[0] ?? null;
+        const editions = await getPsStoreEditionsByName(gameName);
+        skuId = editions[0]?.skuId ?? null;
       } catch (err) {
         console.error("Error resolving PS Store sku for", gameName, err);
       }

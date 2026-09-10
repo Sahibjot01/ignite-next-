@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import {
   Star,
@@ -13,7 +14,7 @@ import {
 import { useUser, SignInButton } from "@clerk/nextjs";
 import { motion, type Variants } from "motion/react";
 import { Game, GameScreenshot, imageResizeURL } from "@/lib/rawg";
-import { type PsStoreProductPrice } from "@/lib/ps-store";
+import { type PsStoreEdition } from "@/lib/ps-store";
 import { PriceAlert } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
 import PriceAlertForm from "./price-alert-form";
@@ -25,7 +26,7 @@ interface GameDetailProps {
   game: Game;
   screenshots: GameScreenshot[];
   initialWishlistStatus: boolean;
-  psPrice: PsStoreProductPrice | null;
+  editions: PsStoreEdition[];
   initialPriceAlert: PriceAlert | null;
 }
 const getPlatformIcon = (platformName: string) => {
@@ -39,10 +40,15 @@ export default function GameDetail({
   game,
   screenshots,
   initialWishlistStatus,
-  psPrice,
+  editions,
   initialPriceAlert,
 }: GameDetailProps) {
   const { isSignedIn } = useUser();
+  const [editionIndex, setEditionIndex] = useState(0);
+  const psPrice = editions[editionIndex]?.price ?? null;
+  // Alerts always track Standard (editions[0]) regardless of what's being
+  // viewed here — per-edition alert tracking needs its own schema decision.
+  const standardPrice = editions[0]?.price ?? null;
   const { isMutating, isWishlisted, toggle } = useWishlistToggle(
     game.id,
     game.name,
@@ -263,6 +269,19 @@ export default function GameDetail({
                 PlayStation Store Price
               </h3>
             </div>
+            {editions.length > 1 && (
+              <select
+                value={editionIndex}
+                onChange={(e) => setEditionIndex(Number(e.target.value))}
+                className="mb-4 w-full rounded border border-hairline-strong bg-surface-2 px-2 py-1.5 text-xs font-semibold text-ink-dim"
+              >
+                {editions.map((edition, i) => (
+                  <option key={edition.skuId} value={i}>
+                    {edition.name}
+                  </option>
+                ))}
+              </select>
+            )}
             {!psPrice?.purchasePrice && !psPrice?.subscriptionPrice && (
               <p className="py-4 text-center text-xs text-ink-faint">
                 Not available on the PlayStation Store.
@@ -310,16 +329,41 @@ export default function GameDetail({
                 </div>
               </div>
             )}
+            {psPrice?.conceptUrl && (
+              <a
+                href={psPrice.conceptUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-full border border-hairline-strong bg-surface-2 text-xs font-bold text-ink-dim transition-colors duration-200 hover:border-coral hover:bg-coral hover:text-void"
+              >
+                <Image
+                  src="/icons/playstation.svg"
+                  alt=""
+                  width={14}
+                  height={14}
+                  className="opacity-80 invert"
+                />
+                View on PlayStation Store
+              </a>
+            )}
           </div>
         </motion.div>
 
-        {/* Price Alerts Card — only meaningful for a real purchasable price */}
-        {psPrice?.purchasePrice &&
-          psPrice.purchasePrice.discountedValue > 0 && (
+        {/* Price Alerts Card — only meaningful for a real purchasable price.
+            Always tracks Standard (standardPrice), regardless of which
+            edition is currently selected above. */}
+        {standardPrice?.purchasePrice &&
+          standardPrice.purchasePrice.discountedValue > 0 && (
             <motion.div variants={itemVariants}>
+              {editionIndex !== 0 && (
+                <p className="mb-2 text-xs text-ink-faint">
+                  Price alerts track the Standard Edition, not the edition
+                  currently selected above.
+                </p>
+              )}
               <PriceAlertForm
                 gameId={game.id}
-                currentPrice={psPrice.purchasePrice.discountedValue / 100}
+                currentPrice={standardPrice.purchasePrice.discountedValue / 100}
                 initialAlert={initialPriceAlert}
               />
             </motion.div>
