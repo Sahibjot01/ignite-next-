@@ -16,7 +16,11 @@ export function useWishlistToggle(
     setIsWishlisted((prev) => !prev);
     try {
       const res = await toggleWishlist(gameId, gameName, gameImage);
-      if (res.success) {
+      if (res.success && res.added && !res.skuResolved) {
+        toast.success(
+          `Added ${gameName}, but couldn't find PS Store pricing for it.`,
+        );
+      } else if (res.success) {
         toast.success(
           res.added
             ? `Added ${gameName} to wishlist!`
