@@ -1,9 +1,11 @@
+import { env } from "./env";
+
 const ENDPOINT_URL = "https://web.np.playstation.com/api/graphql/v1/op";
 const DEFAULT_LOCALE = "en-CA";
 const PRICE_OPERATION_NAME = "productRetrieveForCtasWithPrice";
-const PRICE_QUERY_HASH = process.env.PS_STORE_PRICE_QUERY_HASH!;
-const X_ALGOLIA_APPLICATION_ID = process.env.ALGOLIA_APPLICATION_ID!;
-const X_ALGOLIA_API_KEY = process.env.ALGOLIA_API_KEY!;
+const PRICE_QUERY_HASH = env.PS_STORE_PRICE_QUERY_HASH;
+const X_ALGOLIA_APPLICATION_ID = env.ALGOLIA_APPLICATION_ID;
+const X_ALGOLIA_API_KEY = env.ALGOLIA_API_KEY;
 interface GraphQLResponse<T> {
   data: T;
   errors?: { message: string }[];
