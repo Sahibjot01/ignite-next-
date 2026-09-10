@@ -193,7 +193,7 @@ export default function WishlistList({ initialItems }: WishlistListProps) {
                       <TrendingUp className="h-3.5 w-3.5" />
                       Price History
                     </DialogTrigger>
-                    <DialogContent className="max-w-lg bg-surface p-0 ring-hairline-strong sm:max-w-lg">
+                    <DialogContent className="bg-surface p-0 ring-hairline-strong sm:max-w-lg">
                       <DialogHeader className="px-6 pt-6">
                         <DialogTitle className="font-display text-base">
                           {item.game_name}
