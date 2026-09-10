@@ -72,14 +72,14 @@ export default function PriceChart({ snapshots, hasPriceData }: PriceChartProps)
   const maxPrice = Math.max(...prices) + 5;
 
   return (
-    <div className="clip-notch-sm border border-hairline bg-surface p-6">
-      <div className="mb-4">
+    <div className="clip-notch-sm border border-hairline bg-surface p-3">
+      <div className="mb-4 px-1">
         <h3 className="font-display text-sm font-semibold text-ink">Price History (CAD)</h3>
         <p className="text-xs text-ink-faint">Tracked price fluctuations over time</p>
       </div>
       <div className="h-60 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+          <LineChart data={data} margin={{ top: 10, right: 4, left: -14, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} vertical={false} />
             <XAxis
               dataKey="date"

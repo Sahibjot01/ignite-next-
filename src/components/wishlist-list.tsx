@@ -212,7 +212,7 @@ export default function WishlistList({ initialItems }: WishlistListProps) {
                         transition={{ duration: 0.25, ease: EASE }}
                         className="overflow-hidden"
                       >
-                        <div className="pt-3">
+                        <div className="-mx-5 pt-3">
                           <PriceChart
                             snapshots={item.snapshots}
                             hasPriceData={!!item.psPrice}
