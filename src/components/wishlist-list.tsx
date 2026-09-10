@@ -3,9 +3,16 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Heart, Trash2, ExternalLink, TrendingUp, ChevronDown } from "lucide-react";
+import { Heart, Trash2, ExternalLink, TrendingUp } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { toggleWishlist } from "@/lib/actions";
 import { imageResizeURL } from "@/lib/rawg";
 import { type PsStoreProductPrice } from "@/lib/ps-store";
@@ -32,19 +39,6 @@ interface WishlistListProps {
 
 export default function WishlistList({ initialItems }: WishlistListProps) {
   const [items, setItems] = useState<WishlistWithDealsItem[]>(initialItems);
-  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
-
-  const toggleHistory = (gameId: number) => {
-    setExpandedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(gameId)) {
-        next.delete(gameId);
-      } else {
-        next.add(gameId);
-      }
-      return next;
-    });
-  };
 
   const handleRemove = async (gameId: number, name: string) => {
     // Optimistically remove from state
@@ -185,42 +179,34 @@ export default function WishlistList({ initialItems }: WishlistListProps) {
                   </div>
                 </Link>
 
-                {/* Price History toggle — outside the Link so it doesn't navigate */}
+                {/* Price History — outside the Link so it doesn't navigate */}
                 <div className="border-t border-hairline px-5 py-3">
-                  <button
-                    type="button"
-                    onClick={() => toggleHistory(item.game_id)}
-                    className="flex w-full items-center justify-between text-xs font-semibold text-ink-dim transition-colors hover:text-ink"
-                  >
-                    <span className="flex items-center gap-1.5">
+                  <Dialog>
+                    <DialogTrigger
+                      render={
+                        <button
+                          type="button"
+                          className="flex w-full items-center gap-1.5 text-xs font-semibold text-ink-dim transition-colors hover:text-ink"
+                        />
+                      }
+                    >
                       <TrendingUp className="h-3.5 w-3.5" />
                       Price History
-                    </span>
-                    <ChevronDown
-                      className={`h-3.5 w-3.5 transition-transform duration-200 ${
-                        expandedIds.has(item.game_id) ? "rotate-180" : ""
-                      }`}
-                    />
-                  </button>
-
-                  <AnimatePresence initial={false}>
-                    {expandedIds.has(item.game_id) && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.25, ease: EASE }}
-                        className="overflow-hidden"
-                      >
-                        <div className="-mx-5 pt-3">
-                          <PriceChart
-                            snapshots={item.snapshots}
-                            hasPriceData={!!item.psPrice}
-                          />
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-lg bg-surface p-0 ring-hairline-strong sm:max-w-lg">
+                      <DialogHeader className="px-6 pt-6">
+                        <DialogTitle className="font-display text-base">
+                          {item.game_name}
+                        </DialogTitle>
+                      </DialogHeader>
+                      <div className="px-6 pb-6">
+                        <PriceChart
+                          snapshots={item.snapshots}
+                          hasPriceData={!!item.psPrice}
+                        />
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </article>
             </motion.div>
