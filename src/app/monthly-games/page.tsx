@@ -3,11 +3,13 @@ import SectionHead from "@/components/section-head";
 import MonthlyGamesAlertNudge from "@/components/monthly-games-alert-nudge";
 import EssentialGameCard from "@/components/essential-game-card";
 import { getCurrentEssentialGames } from "@/lib/ps-plus";
+import { getMonthlyAlertPreference } from "@/lib/actions";
 
 export const dynamic = "force-dynamic";
 
 export default async function MonthlyGamesPage() {
   const games = await getCurrentEssentialGames();
+  const alreadySubscribed = await getMonthlyAlertPreference();
 
   return (
     <div className="flex flex-col min-h-screen bg-void text-ink">
@@ -24,14 +26,14 @@ export default async function MonthlyGamesPage() {
         </div>
 
         <div className="mb-8">
-          <MonthlyGamesAlertNudge />
+          <MonthlyGamesAlertNudge initialSubscribed={alreadySubscribed} />
         </div>
 
         {games.length === 0 ? (
           <div className="clip-notch-md border border-dashed border-hairline-strong bg-surface/50 p-10 text-center">
             <p className="text-sm text-ink-dim">
-              Couldn&apos;t find this month&apos;s Essential lineup right now
-              — try again shortly.
+              Couldn&apos;t find this month&apos;s Essential lineup right now —
+              try again shortly.
             </p>
           </div>
         ) : (
