@@ -500,6 +500,46 @@ export async function getFreshAccessToken(): Promise<TokenResult> {
   }
 }
 
+export type PsnConnectionStatus =
+  | { linked: false }
+  | (Pick<PsnAccount, "online_id" | "linked_at"> & {
+      linked: true;
+      valid: true;
+    })
+  | (Pick<PsnAccount, "online_id" | "linked_at"> & {
+      linked: true;
+      valid: false;
+      error: string;
+    });
+
+// Settings needs to show the same reality /library will actually hit, not
+// just "a row exists in psn_accounts" — a linked-but-revoked/expired token
+// still has a row, so getPsnAccountStatus alone can't tell them apart. This
+// reuses getFreshAccessToken's live Sony call (already the source of truth
+// for whether the stored refresh token still works) instead of trusting the
+// DB in isolation.
+export async function getPsnConnectionStatus(): Promise<PsnConnectionStatus> {
+  const account = await getPsnAccountStatus();
+  if (!account) return { linked: false };
+
+  const tokenResult = await getFreshAccessToken();
+  if (tokenResult.success) {
+    return {
+      online_id: account.online_id,
+      linked_at: account.linked_at,
+      linked: true,
+      valid: true,
+    };
+  }
+  return {
+    online_id: account.online_id,
+    linked_at: account.linked_at,
+    linked: true,
+    valid: false,
+    error: tokenResult.error,
+  };
+}
+
 export async function getLibraryGames(): Promise<LibraryGamesResult> {
   const result = await getFreshAccessToken();
   if (!result.success) {
