@@ -75,7 +75,10 @@ async function fetchRawg<T>(
   });
 
   if (!res.ok) {
-    throw new Error(`Failed to fetch from RAWG: ${res.statusText}`);
+    throw Object.assign(
+      new Error(`Failed to fetch from Rawg:${res.statusText}`),
+      { status: res.status },
+    );
   }
 
   return res.json() as Promise<T>;

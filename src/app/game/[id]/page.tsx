@@ -28,7 +28,10 @@ export default async function GameDetailPage(props: PageProps) {
     screenshots = screenData;
   } catch (error) {
     console.error("Error loading game details:", error);
-    notFound();
+    if (error instanceof Error && "status" in error && error.status === 404) {
+      notFound();
+    }
+    throw error;
   }
 
   // Fetch auth-based states and the live PS Store editions in parallel
