@@ -5,11 +5,21 @@ import { BellRing, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { setMonthlyAlertPreference } from "@/lib/actions";
 
-export default function MonthlyGamesAlertNudge() {
+export default function MonthlyGamesAlertNudge({
+  initialSubscribed,
+}: {
+  initialSubscribed: boolean;
+}) {
+  // Snapshotted once at mount, not read live off the prop: a click below
+  // triggers a Server Action, which Next.js follows with an automatic
+  // refresh of this route — re-passing this same prop as `true`. Reading
+  // the prop directly here would make the just-shown "You're in!"
+  // confirmation vanish under that refresh instead of staying visible.
+  const [hiddenFromStart] = useState(initialSubscribed);
   const [dismissed, setDismissed] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
 
-  if (dismissed) return null;
+  if (hiddenFromStart || dismissed) return null;
   const handleSubscribe = async () => {
     const res = await setMonthlyAlertPreference(true);
     if (res.success) {
