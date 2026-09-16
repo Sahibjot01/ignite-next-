@@ -13,7 +13,7 @@ import {
   getTrophySummary,
 } from "@/lib/actions";
 import { getRecommendations } from "@/lib/recommendations";
-import { formatPlayDuration } from "@/lib/psn";
+import { formatPlayDuration, parseDurationToMinutes } from "@/lib/psn";
 import { imageResizeURL } from "@/lib/rawg";
 import { format } from "date-fns";
 export const dynamic = "force-dynamic";
@@ -100,6 +100,19 @@ export default async function LibraryPage() {
         getRecommendations(result.games),
       ]);
 
+      // getLibraryGames() returns games sorted by recency (PSN's API
+      // default, not something this app controls) — that's the right
+      // order for "Recently Played" as-is. "Most Played" is a separate
+      // client-side sort by actual playtime, since PSN's API has no way
+      // to request that ordering directly.
+      const mostPlayed = [...result.games]
+        .sort(
+          (a, b) =>
+            parseDurationToMinutes(b.playDuration) -
+            parseDurationToMinutes(a.playDuration),
+        )
+        .slice(0, 15);
+
       content = (
         <>
           {trophyResult.success && (
@@ -114,8 +127,33 @@ export default async function LibraryPage() {
             </div>
           )}
 
+          <h2 className="mb-5 font-display text-lg font-medium text-ink">
+            Most Played
+          </h2>
+          <div className="no-scrollbar mb-12 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2">
+            {mostPlayed.map((game) => {
+              const cover =
+                game.imageUrl || game.localizedImageUrl || "/icons/gamepad.svg";
+              return (
+                <GameTradingCard
+                  key={game.titleId}
+                  title={game.name}
+                  cover={cover}
+                  badge={CATEGORY_LABEL[game.category]}
+                  subText={`Last played ${format(new Date(game.lastPlayedDateTime), "MMM d, yyyy")}`}
+                  metaIcon={<Clock className="h-3.5 w-3.5" />}
+                  metaText={`${formatPlayDuration(game.playDuration)} played`}
+                  accent="coral"
+                />
+              );
+            })}
+          </div>
+
+          <h2 className="mb-5 font-display text-lg font-medium text-ink">
+            Recently Played
+          </h2>
           <div className="no-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2">
-            {result.games.map((game) => {
+            {result.games.slice(0, 15).map((game) => {
               const cover =
                 game.imageUrl || game.localizedImageUrl || "/icons/gamepad.svg";
               return (

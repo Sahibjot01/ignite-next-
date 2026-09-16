@@ -36,12 +36,18 @@ export function decrypt(packed: string): string {
 }
 
 export async function getPsnPlayedGames(accessToken: string) {
+  // PSN's API always sorts this list by recency, never by playtime, and
+  // only returns `limit` games — 10 was silently hiding real most-played
+  // games that just hadn't been touched recently (confirmed against a
+  // real account: Ghost of Tsushima and Spider-Man 2, the #2 and #3 most
+  // played games, were invisible at limit 10 despite 62 games existing).
+  // 100 comfortably covers a normal library in one call, confirmed
+  // against the real API — no pagination needed for accounts this size.
   const result = await getUserPlayedGames({ accessToken: accessToken }, "me", {
     categories: "ps4_game,ps5_native_game",
-    limit: 10,
+    limit: 100,
     offset: 0,
   });
-  console.log(result.titles[0].playDuration);
   return result.titles;
 }
 
@@ -61,4 +67,13 @@ export function formatPlayDuration(duration: string): string {
   const hours = Number(match?.[1] ?? 0);
   const minutes = Number(match?.[2] ?? 0);
   return `${hours}h ${minutes}m`;
+}
+
+// Same ISO-8601 duration PSN returns everywhere, as raw minutes instead
+// of a display string — for sorting/comparing playtime, not showing it.
+export function parseDurationToMinutes(duration: string): number {
+  const match = duration.match(/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/);
+  const hours = Number(match?.[1] ?? 0);
+  const minutes = Number(match?.[2] ?? 0);
+  return hours * 60 + minutes;
 }

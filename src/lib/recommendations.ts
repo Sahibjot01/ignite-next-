@@ -1,5 +1,6 @@
 import type { UserPlayedGamesResponse } from "psn-api";
 import { searchGames, getGamesByGenres, type Game } from "./rawg";
+import { parseDurationToMinutes } from "./psn";
 
 type PlayedGame = UserPlayedGamesResponse["titles"][number];
 
@@ -21,13 +22,6 @@ const MIN_ENGAGEMENT_MINUTES = 30;
 const TOP_PLAYED_COUNT = 5;
 
 const MAX_RECOMMENDATIONS = 6;
-
-function parseDurationToMinutes(duration: string): number {
-  const match = duration.match(/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/);
-  const hours = Number(match?.[1] ?? 0);
-  const minutes = Number(match?.[2] ?? 0);
-  return hours * 60 + minutes;
-}
 
 function normalize(name: string): string {
   return name
