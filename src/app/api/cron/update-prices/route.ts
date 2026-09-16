@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabaseClient";
 import { getProductPrice } from "@/lib/ps-store";
 import { getErrorMessage } from "@/lib/utils";
+import { sendAlertEmail } from "@/lib/email";
+import { env } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +38,7 @@ export async function GET(req: NextRequest) {
       `Running daily price updates for ${uniqueGames.length} unique games.`,
     );
     const results = [];
-
+    let rotationSuspectCount = 0;
     // 🔹 3. Loop over unique games and fetch current deals
     for (const game of uniqueGames) {
       try {
@@ -118,6 +120,20 @@ export async function GET(req: NextRequest) {
           price: currentPrice,
         });
       } catch (gameError) {
+        if (gameError instanceof Error) {
+          // A 4xx from Sony means WE sent something invalid (bad hash/key) —
+          // a 5xx means THEIR server had a problem, unrelated to rotation.
+          if (
+            "status" in gameError &&
+            typeof gameError.status === "number" &&
+            gameError.status >= 400 &&
+            gameError.status < 500
+          ) {
+            rotationSuspectCount++;
+          } else if ("isGraphqlError" in gameError) {
+            rotationSuspectCount++;
+          }
+        }
         console.error(`Error updating price for ${game.game_name}:`, gameError);
         results.push({
           gameId: game.game_id,
@@ -127,7 +143,20 @@ export async function GET(req: NextRequest) {
         });
       }
     }
-
+    // A rotated hash/key breaks every request identically, not just a few —
+    // so a high threshold still reliably catches a real rotation while
+    // avoiding false alarms from a couple of unrelated one-off failures.
+    if (
+      uniqueGames.length > 0 &&
+      rotationSuspectCount / uniqueGames.length > 0.8
+    ) {
+      await sendAlertEmail({
+        to: env.SUPERUSER_EMAIL,
+        subject: "Ignite: PS Store keys may have rotated",
+        heading: "PS Store price lookups are failing systemically",
+        body: `${rotationSuspectCount} of ${uniqueGames.length} games failed with an auth/GraphQL error in the last cron run. This usually means the persisted-query hash or Algolia keys need to be re-discovered.`,
+      });
+    }
     return NextResponse.json({
       message: "Daily price update completed successfully.",
       results,

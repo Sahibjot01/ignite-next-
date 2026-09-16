@@ -5,6 +5,8 @@ const envSchema = z.object({
   ALGOLIA_APPLICATION_ID: z.string().min(1),
   ALGOLIA_API_KEY: z.string().min(1),
   CLERK_WEBHOOK_SIGNING_SECRET: z.string().min(1),
+  RESEND_API_KEY: z.string().min(1),
+  SUPERUSER_EMAIL: z.string().email(),
 });
 
 export const env = envSchema.parse(process.env);

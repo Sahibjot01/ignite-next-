@@ -95,10 +95,15 @@ async function fetchPsStore<T>(
   const json = (await res.json()) as GraphQLResponse<T>;
 
   if (json.errors?.length) {
-    throw new Error(json.errors[0].message);
+    throw Object.assign(new Error(json.errors[0].message), {
+      isGraphqlError: true,
+    });
   }
   if (!res.ok) {
-    throw new Error(`Failed to fetch from Psn: ${res.statusText}`);
+    throw Object.assign(
+      new Error(`Failed to fetch from Psn: ${res.statusText}`),
+      { status: res.status },
+    );
   }
 
   return json.data as T;
@@ -298,7 +303,10 @@ export async function searchPsStoreProducts(
     },
   });
   if (!resp.ok) {
-    throw new Error(`Failed to fetch from algolia search: ${resp.statusText}`);
+    throw Object.assign(
+      new Error(`Failed to fetch from algolia search: ${resp.statusText}`),
+      { status: resp.status },
+    );
   }
   const result = (await resp.json()) as SearchRetrieveResponse;
   return result.results[0].hits;
