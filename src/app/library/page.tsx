@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
-import { Clock, Gamepad2, Sparkles } from "lucide-react";
+import { Clock, Gamepad2, Sparkles, Bot } from "lucide-react";
 import Navbar from "@/components/navbar";
 import SectionHead from "@/components/section-head";
 import GameTradingCard from "@/components/game-trading-card";
@@ -14,6 +14,7 @@ import {
   getTrophySummary,
 } from "@/lib/actions";
 import { getRecommendations } from "@/lib/recommendations";
+import { getAiRecommendations } from "@/lib/ai-recommendations";
 import { formatPlayDuration, parseDurationToMinutes } from "@/lib/psn";
 import { imageResizeURL, resolveGameIds } from "@/lib/rawg";
 import { format } from "date-fns";
@@ -115,14 +116,16 @@ export default async function LibraryPage() {
       // getRecommendations(), or this resolve step touch PSN tokens
       // except the trophy call, so all three run together safely (see the
       // note on the trophy/library sequencing below).
-      const [trophyResult, recommendations, gameIds] = await Promise.all([
-        getTrophySummary(),
-        getRecommendations(result.games),
-        resolveGameIds([
-          ...mostPlayed.map((g) => g.name),
-          ...recentlyPlayed.map((g) => g.name),
-        ]),
-      ]);
+      const [trophyResult, recommendations, aiRecommendations, gameIds] =
+        await Promise.all([
+          getTrophySummary(),
+          getRecommendations(result.games),
+          getAiRecommendations(result.games),
+          resolveGameIds([
+            ...mostPlayed.map((g) => g.name),
+            ...recentlyPlayed.map((g) => g.name),
+          ]),
+        ]);
 
       content = (
         <>
@@ -201,6 +204,40 @@ export default async function LibraryPage() {
                       "/icons/gamepad.svg"
                     }
                     metaIcon={<Sparkles className="h-3.5 w-3.5" />}
+                    metaText={rec.reason}
+                    accent="platinum"
+                    href={`/game/${rec.game.id}`}
+                  />
+                ))}
+              </AutoScrollRow>
+            </div>
+          )}
+
+          {aiRecommendations.length > 0 && (
+            <div className="mt-12">
+              <div className="mb-5 flex items-baseline gap-2">
+                <h2 className="font-display text-lg font-medium text-ink">
+                  AI Picks
+                </h2>
+                <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-ink-faint">
+                  Experimental — for comparison
+                </span>
+              </div>
+              <p className="mb-5 text-xs text-ink-faint">
+                A separate, LLM-generated take on the same question — not
+                the app&apos;s core recommendation logic, just a comparison
+                against it.
+              </p>
+              <AutoScrollRow className="no-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2">
+                {aiRecommendations.map((rec) => (
+                  <GameTradingCard
+                    key={rec.game.id}
+                    title={rec.game.name}
+                    cover={
+                      imageResizeURL(rec.game.background_image, 640) ||
+                      "/icons/gamepad.svg"
+                    }
+                    metaIcon={<Bot className="h-3.5 w-3.5" />}
                     metaText={rec.reason}
                     accent="platinum"
                     href={`/game/${rec.game.id}`}
