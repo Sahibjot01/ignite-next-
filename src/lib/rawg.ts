@@ -17,6 +17,12 @@ export interface GameScreenshot {
   image: string;
 }
 
+export interface GameGenre {
+  id: number;
+  name: string;
+  slug: string;
+}
+
 export interface Game {
   id: number;
   name: string;
@@ -28,6 +34,7 @@ export interface Game {
   platforms?: GamePlatform[];
   description_raw?: string;
   short_screenshots?: GameScreenshot[];
+  genres?: GameGenre[];
 }
 
 export interface RawgResponse<T> {
@@ -125,6 +132,20 @@ export async function searchGames(query: string): Promise<Game[]> {
     },
     60,
   ); // Cache search for 1 minute
+  return data.results;
+}
+
+// Candidate pool for recommendations — unowned PS titles matching the
+// genres the user actually plays most, sorted by rating like the rest
+// of the browse pages.
+export async function getGamesByGenres(genreSlugs: string[]): Promise<Game[]> {
+  if (genreSlugs.length === 0) return [];
+  const data = await fetchRawg<RawgResponse<Game>>("games", {
+    genres: genreSlugs.join(","),
+    platforms: PS_PLATFORM_IDS,
+    ordering: "-rating",
+    page_size: "20",
+  });
   return data.results;
 }
 

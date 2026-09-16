@@ -14,7 +14,7 @@ import {
   getProfileFromUserName,
   UserPlayedGamesResponse,
 } from "psn-api";
-import { decrypt, encrypt, getPsnPlayedGames } from "./psn";
+import { decrypt, encrypt, getPsnPlayedGames, getPsnTrophySummary } from "./psn";
 import { getPsStoreEditionsByName } from "./ps-store";
 export interface WishlistItem {
   id: string;
@@ -55,10 +55,23 @@ export interface PsnAccount {
 }
 
 type TokenResult =
-  { success: true; accessToken: string } | { success: false; error: string };
+  | { success: true; accessToken: string; accountId: string }
+  | { success: false; error: string };
 
 type LibraryGamesResult =
   | { success: true; games: UserPlayedGamesResponse["titles"] }
+  | { success: false; error: string };
+
+export type TrophySummary = {
+  trophyLevel: number;
+  platinum: number;
+  gold: number;
+  silver: number;
+  bronze: number;
+};
+
+type TrophySummaryResult =
+  | { success: true; summary: TrophySummary }
   | { success: false; error: string };
 // 🔹 1. WISHLIST ACTIONx
 
@@ -459,7 +472,7 @@ export async function getFreshAccessToken(): Promise<TokenResult> {
 
     const { data: row, error } = await supabase
       .from("psn_accounts")
-      .select("refresh_token_encrypted")
+      .select("refresh_token_encrypted, account_id")
       .eq("user_id", userId)
       .maybeSingle();
 
@@ -493,7 +506,11 @@ export async function getFreshAccessToken(): Promise<TokenResult> {
       .eq("user_id", userId);
     if (secErr) throw secErr;
 
-    return { success: true, accessToken: authTokenResp.accessToken };
+    return {
+      success: true,
+      accessToken: authTokenResp.accessToken,
+      accountId: row.account_id,
+    };
   } catch (err) {
     console.error("Error getting refreshToken for user:", err);
     return { success: false, error: getErrorMessage(err) };
@@ -548,6 +565,31 @@ export async function getLibraryGames(): Promise<LibraryGamesResult> {
   try {
     const games = await getPsnPlayedGames(result.accessToken);
     return { success: true, games: games };
+  } catch (err) {
+    return { success: false, error: getErrorMessage(err) };
+  }
+}
+
+export async function getTrophySummary(): Promise<TrophySummaryResult> {
+  const result = await getFreshAccessToken();
+  if (!result.success) {
+    return result;
+  }
+  try {
+    const summary = await getPsnTrophySummary(
+      result.accessToken,
+      result.accountId,
+    );
+    return {
+      success: true,
+      summary: {
+        trophyLevel: Number(summary.trophyLevel),
+        platinum: summary.earnedTrophies.platinum,
+        gold: summary.earnedTrophies.gold,
+        silver: summary.earnedTrophies.silver,
+        bronze: summary.earnedTrophies.bronze,
+      },
+    };
   } catch (err) {
     return { success: false, error: getErrorMessage(err) };
   }
