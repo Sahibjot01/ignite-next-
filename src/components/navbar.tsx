@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Search, Heart, Settings, Library, Gift } from "lucide-react";
@@ -13,6 +13,8 @@ import NotificationsBell from "./notifications-bell";
 export default function Navbar() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const isOnVaultPage = pathname === "/library";
   const { isSignedIn } = useUser();
   const [searchQuery, setSearchQuery] = useState(
     searchParams.get("search") || "",
@@ -104,11 +106,13 @@ export default function Navbar() {
               <Link href="/library">
                 <Button
                   variant="ghost"
-                  className="flex items-center gap-2 hover:bg-surface hover:text-ink rounded-full text-ink-dim"
+                  className={`flex items-center gap-2 rounded-full text-ink-dim hover:bg-surface hover:text-ink ${
+                    isOnVaultPage ? "" : "animate-vault-glow"
+                  }`}
                 >
                   <Library className="h-4 w-4 text-coral fill-coral" />
                   <span className="hidden sm:inline font-semibold">
-                    Library
+                    Vault
                   </span>
                 </Button>
               </Link>

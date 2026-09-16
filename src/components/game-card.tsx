@@ -67,7 +67,7 @@ export default function GameCard({
         </div>
 
         {/* Game Image */}
-        <div className="card-hover-art art-scanline relative aspect-[16/10] w-full shrink-0 overflow-hidden bg-surface-2">
+        <div className="card-hover-art art-scanline relative aspect-[4/3] w-full shrink-0 overflow-hidden bg-surface-2">
           <Image
             src={resizedImage}
             alt={game.name}
@@ -76,40 +76,37 @@ export default function GameCard({
             className="object-cover"
             unoptimized={resizedImage.endsWith(".svg")}
           />
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-void/85 via-transparent to-transparent" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-void via-void/40 to-transparent" />
+          {game.metacritic && (
+            <div
+              className={`absolute left-3 top-3 rounded px-1.5 py-0.5 text-xs font-bold backdrop-blur-md ${
+                game.metacritic >= 75
+                  ? "bg-green-950/80 text-green-400 border border-green-800"
+                  : game.metacritic >= 50
+                    ? "bg-amber-950/80 text-amber-400 border border-amber-800"
+                    : "bg-red-950/80 text-red-400 border border-red-800"
+              }`}
+            >
+              {game.metacritic}
+            </div>
+          )}
+          <div className="absolute inset-x-0 bottom-0 p-4">
+            <h3 className="card-hover-title font-display text-base font-medium leading-snug text-ink line-clamp-2 transition-colors duration-200">
+              {game.name}
+            </h3>
+          </div>
         </div>
 
         {/* Game Details */}
-        <div className="flex flex-1 flex-col justify-between p-5">
-          <div>
-            <h3 className="card-hover-title font-display text-lg font-medium leading-snug text-ink line-clamp-2 transition-colors duration-200">
-              {game.name}
-            </h3>
-            <p className="mt-1.5 text-xs text-ink-faint">
-              Release Date: {game.released || "N/A"}
-            </p>
-          </div>
-
-          <div className="mt-4 flex items-center justify-between border-t border-hairline pt-3 text-sm">
-            <div className="flex items-center gap-1">
-              <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
-              <span className="font-semibold text-ink-dim">
-                {game.rating ? game.rating.toFixed(1) : "N/A"}
-              </span>
-            </div>
-            {game.metacritic && (
-              <div
-                className={`rounded px-1.5 py-0.5 text-xs font-bold ${
-                  game.metacritic >= 75
-                    ? "bg-green-950/80 text-green-400 border border-green-800"
-                    : game.metacritic >= 50
-                      ? "bg-amber-950/80 text-amber-400 border border-amber-800"
-                      : "bg-red-950/80 text-red-400 border border-red-800"
-                }`}
-              >
-                {game.metacritic}
-              </div>
-            )}
+        <div className="flex items-center justify-between border-t border-hairline px-4 py-2.5 text-sm">
+          <span className="text-xs text-ink-faint">
+            {game.released || "N/A"}
+          </span>
+          <div className="flex items-center gap-1">
+            <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
+            <span className="font-semibold text-ink-dim">
+              {game.rating ? game.rating.toFixed(1) : "N/A"}
+            </span>
           </div>
         </div>
       </article>
