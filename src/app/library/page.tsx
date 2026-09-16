@@ -7,8 +7,14 @@ import SectionHead from "@/components/section-head";
 import GameTradingCard from "@/components/game-trading-card";
 import TrophySummaryStrip from "@/components/trophy-summary-strip";
 import { Button } from "@/components/ui/button";
-import { getPsnAccountStatus, getLibraryGames } from "@/lib/actions";
+import {
+  getPsnAccountStatus,
+  getLibraryGames,
+  getTrophySummary,
+} from "@/lib/actions";
+import { getRecommendations } from "@/lib/recommendations";
 import { formatPlayDuration } from "@/lib/psn";
+import { imageResizeURL } from "@/lib/rawg";
 import { format } from "date-fns";
 export const dynamic = "force-dynamic";
 
@@ -17,15 +23,6 @@ const CATEGORY_LABEL: Record<string, string> = {
   ps4_game: "PS4",
   pspc_game: "PC",
 };
-
-// Placeholder only — real genre/playtime-weighted scoring is P4, not yet
-// built. Kept visually real so the layout can be judged, but never
-// presented as an actual personalized pick.
-const RECOMMENDATION_PREVIEW = [
-  { title: "Because you play a lot of RPGs", reason: "Matches your top genre" },
-  { title: "Similar to your most-played game", reason: "Same genre, unowned" },
-  { title: "Highly rated in a genre you like", reason: "High RAWG rating" },
-];
 
 export default async function LibraryPage() {
   const { userId } = await auth();
@@ -92,22 +89,30 @@ export default async function LibraryPage() {
         </div>
       );
     } else {
+      // getTrophySummary() does its own PSN token refresh — kept sequential
+      // relative to getLibraryGames() above (already awaited by this point,
+      // so no overlap) since PSN's refresh token rotates on every use and
+      // two concurrent refreshes racing on the same stored token could make
+      // one fail. getRecommendations() never touches PSN tokens (RAWG
+      // only), so it's safe to run alongside the trophy fetch.
+      const [trophyResult, recommendations] = await Promise.all([
+        getTrophySummary(),
+        getRecommendations(result.games),
+      ]);
+
       content = (
         <>
-          <div className="mb-2 flex items-baseline gap-2">
-            <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-ink-faint">
-              Preview — placeholder numbers
-            </span>
-          </div>
-          <div className="mb-10">
-            <TrophySummaryStrip
-              trophyLevel={72}
-              platinum={0}
-              gold={6}
-              silver={19}
-              bronze={211}
-            />
-          </div>
+          {trophyResult.success && (
+            <div className="mb-10">
+              <TrophySummaryStrip
+                trophyLevel={trophyResult.summary.trophyLevel}
+                platinum={trophyResult.summary.platinum}
+                gold={trophyResult.summary.gold}
+                silver={trophyResult.summary.silver}
+                bronze={trophyResult.summary.bronze}
+              />
+            </div>
+          )}
 
           <div className="no-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2">
             {result.games.map((game) => {
@@ -128,32 +133,28 @@ export default async function LibraryPage() {
             })}
           </div>
 
-          <div className="mt-12">
-            <div className="mb-5 flex items-baseline gap-2">
-              <h2 className="font-display text-lg font-medium text-ink">
+          {recommendations.length > 0 && (
+            <div className="mt-12">
+              <h2 className="mb-5 font-display text-lg font-medium text-ink">
                 Recommended For You
               </h2>
-              <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-ink-faint">
-                Preview
-              </span>
+              <div className="no-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2">
+                {recommendations.map((rec) => (
+                  <GameTradingCard
+                    key={rec.game.id}
+                    title={rec.game.name}
+                    cover={
+                      imageResizeURL(rec.game.background_image, 640) ||
+                      "/icons/gamepad.svg"
+                    }
+                    metaIcon={<Sparkles className="h-3.5 w-3.5" />}
+                    metaText={rec.reason}
+                    accent="platinum"
+                  />
+                ))}
+              </div>
             </div>
-            <p className="mb-5 text-xs text-ink-faint">
-              A look at what this will feel like — real picks based on your
-              genres and playtime are still being built.
-            </p>
-            <div className="no-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2">
-              {RECOMMENDATION_PREVIEW.map((rec) => (
-                <GameTradingCard
-                  key={rec.title}
-                  title={rec.title}
-                  cover="/icons/gamepad.svg"
-                  metaIcon={<Sparkles className="h-3.5 w-3.5" />}
-                  metaText={rec.reason}
-                  accent="platinum"
-                />
-              ))}
-            </div>
-          </div>
+          )}
         </>
       );
     }

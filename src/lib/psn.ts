@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { getUserPlayedGames } from "psn-api";
+import { getUserPlayedGames, getUserTrophyProfileSummary } from "psn-api";
 
 const ALGORITHM = "aes-256-gcm";
 
@@ -43,6 +43,16 @@ export async function getPsnPlayedGames(accessToken: string) {
   });
   console.log(result.titles[0].playDuration);
   return result.titles;
+}
+
+// Account-wide trophy level + platinum/gold/silver/bronze counts — one
+// call, unlike getUserTrophiesForSpecificTitle() which is per-game (N
+// calls for N games), which is why trophy data was deferred out of P3.
+export async function getPsnTrophySummary(
+  accessToken: string,
+  accountId: string,
+) {
+  return getUserTrophyProfileSummary({ accessToken }, accountId);
 }
 
 export function formatPlayDuration(duration: string): string {
