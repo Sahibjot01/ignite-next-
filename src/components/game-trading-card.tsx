@@ -1,3 +1,4 @@
+import Link from "next/link";
 import Image from "next/image";
 import { type ReactNode } from "react";
 
@@ -9,6 +10,9 @@ interface GameTradingCardProps {
   metaIcon: ReactNode;
   metaText: string;
   accent?: "coral" | "platinum";
+  // When absent, the card renders as a plain (non-clickable) card — not
+  // every game shown here has a resolved RAWG id to link to.
+  href?: string;
 }
 
 const ACCENT_RING = {
@@ -27,11 +31,12 @@ export default function GameTradingCard({
   metaIcon,
   metaText,
   accent = "coral",
+  href,
 }: GameTradingCardProps) {
-  return (
-    <article
-      className={`card-hover clip-notch-md relative flex h-full w-56 shrink-0 snap-start flex-col overflow-hidden border border-hairline bg-surface ${ACCENT_RING[accent]}`}
-    >
+  const cardClassName = `card-hover clip-notch-md relative flex h-full w-56 shrink-0 snap-start flex-col overflow-hidden border border-hairline bg-surface ${ACCENT_RING[accent]}`;
+
+  const body = (
+    <>
       <div className="card-hover-art art-scanline relative aspect-[3/4] w-full shrink-0 overflow-hidden bg-surface-2">
         <Image
           src={cover}
@@ -73,6 +78,16 @@ export default function GameTradingCard({
           </span>
         </div>
       </div>
-    </article>
+    </>
   );
+
+  if (href) {
+    return (
+      <Link href={href} className={cardClassName}>
+        {body}
+      </Link>
+    );
+  }
+
+  return <article className={cardClassName}>{body}</article>;
 }

@@ -1,11 +1,12 @@
 import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
-import { Clock, Gamepad2, Sparkles } from "lucide-react";
+import { Clock, Gamepad2, Sparkles, Bot } from "lucide-react";
 import Navbar from "@/components/navbar";
 import SectionHead from "@/components/section-head";
 import GameTradingCard from "@/components/game-trading-card";
 import TrophySummaryStrip from "@/components/trophy-summary-strip";
+import AutoScrollRow from "@/components/auto-scroll-row";
 import { Button } from "@/components/ui/button";
 import {
   getPsnAccountStatus,
@@ -13,8 +14,9 @@ import {
   getTrophySummary,
 } from "@/lib/actions";
 import { getRecommendations } from "@/lib/recommendations";
+import { getAiRecommendations } from "@/lib/ai-recommendations";
 import { formatPlayDuration, parseDurationToMinutes } from "@/lib/psn";
-import { imageResizeURL } from "@/lib/rawg";
+import { imageResizeURL, resolveGameIds } from "@/lib/rawg";
 import { format } from "date-fns";
 export const dynamic = "force-dynamic";
 
@@ -95,11 +97,6 @@ export default async function LibraryPage() {
       // two concurrent refreshes racing on the same stored token could make
       // one fail. getRecommendations() never touches PSN tokens (RAWG
       // only), so it's safe to run alongside the trophy fetch.
-      const [trophyResult, recommendations] = await Promise.all([
-        getTrophySummary(),
-        getRecommendations(result.games),
-      ]);
-
       // getLibraryGames() returns games sorted by recency (PSN's API
       // default, not something this app controls) — that's the right
       // order for "Recently Played" as-is. "Most Played" is a separate
@@ -112,6 +109,23 @@ export default async function LibraryPage() {
             parseDurationToMinutes(a.playDuration),
         )
         .slice(0, 15);
+      const recentlyPlayed = result.games.slice(0, 15);
+
+      // PSN titles have no RAWG id of their own, so cards can't link
+      // anywhere without resolving one first — none of getTrophySummary(),
+      // getRecommendations(), or this resolve step touch PSN tokens
+      // except the trophy call, so all three run together safely (see the
+      // note on the trophy/library sequencing below).
+      const [trophyResult, recommendations, aiRecommendations, gameIds] =
+        await Promise.all([
+          getTrophySummary(),
+          getRecommendations(result.games),
+          getAiRecommendations(result.games),
+          resolveGameIds([
+            ...mostPlayed.map((g) => g.name),
+            ...recentlyPlayed.map((g) => g.name),
+          ]),
+        ]);
 
       content = (
         <>
@@ -130,10 +144,11 @@ export default async function LibraryPage() {
           <h2 className="mb-5 font-display text-lg font-medium text-ink">
             Most Played
           </h2>
-          <div className="no-scrollbar mb-12 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2">
+          <AutoScrollRow className="no-scrollbar mb-12 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2">
             {mostPlayed.map((game) => {
               const cover =
                 game.imageUrl || game.localizedImageUrl || "/icons/gamepad.svg";
+              const rawgId = gameIds.get(game.name);
               return (
                 <GameTradingCard
                   key={game.titleId}
@@ -144,18 +159,20 @@ export default async function LibraryPage() {
                   metaIcon={<Clock className="h-3.5 w-3.5" />}
                   metaText={`${formatPlayDuration(game.playDuration)} played`}
                   accent="coral"
+                  href={rawgId ? `/game/${rawgId}` : undefined}
                 />
               );
             })}
-          </div>
+          </AutoScrollRow>
 
           <h2 className="mb-5 font-display text-lg font-medium text-ink">
             Recently Played
           </h2>
-          <div className="no-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2">
-            {result.games.slice(0, 15).map((game) => {
+          <AutoScrollRow className="no-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2">
+            {recentlyPlayed.map((game) => {
               const cover =
                 game.imageUrl || game.localizedImageUrl || "/icons/gamepad.svg";
+              const rawgId = gameIds.get(game.name);
               return (
                 <GameTradingCard
                   key={game.titleId}
@@ -166,17 +183,18 @@ export default async function LibraryPage() {
                   metaIcon={<Clock className="h-3.5 w-3.5" />}
                   metaText={`${formatPlayDuration(game.playDuration)} played`}
                   accent="coral"
+                  href={rawgId ? `/game/${rawgId}` : undefined}
                 />
               );
             })}
-          </div>
+          </AutoScrollRow>
 
           {recommendations.length > 0 && (
             <div className="mt-12">
               <h2 className="mb-5 font-display text-lg font-medium text-ink">
                 Recommended For You
               </h2>
-              <div className="no-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2">
+              <AutoScrollRow className="no-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2">
                 {recommendations.map((rec) => (
                   <GameTradingCard
                     key={rec.game.id}
@@ -188,9 +206,44 @@ export default async function LibraryPage() {
                     metaIcon={<Sparkles className="h-3.5 w-3.5" />}
                     metaText={rec.reason}
                     accent="platinum"
+                    href={`/game/${rec.game.id}`}
                   />
                 ))}
+              </AutoScrollRow>
+            </div>
+          )}
+
+          {aiRecommendations.length > 0 && (
+            <div className="mt-12">
+              <div className="mb-5 flex items-baseline gap-2">
+                <h2 className="font-display text-lg font-medium text-ink">
+                  AI Picks
+                </h2>
+                <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-ink-faint">
+                  Experimental — for comparison
+                </span>
               </div>
+              <p className="mb-5 text-xs text-ink-faint">
+                A separate, LLM-generated take on the same question — not
+                the app&apos;s core recommendation logic, just a comparison
+                against it.
+              </p>
+              <AutoScrollRow className="no-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2">
+                {aiRecommendations.map((rec) => (
+                  <GameTradingCard
+                    key={rec.game.id}
+                    title={rec.game.name}
+                    cover={
+                      imageResizeURL(rec.game.background_image, 640) ||
+                      "/icons/gamepad.svg"
+                    }
+                    metaIcon={<Bot className="h-3.5 w-3.5" />}
+                    metaText={rec.reason}
+                    accent="platinum"
+                    href={`/game/${rec.game.id}`}
+                  />
+                ))}
+              </AutoScrollRow>
             </div>
           )}
         </>
