@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 import { type ReactNode } from "react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface GameTradingCardProps {
   title: string;
@@ -73,15 +76,42 @@ export default function GameTradingCard({
           <span className={accent === "coral" ? "text-coral" : "text-platinum"}>
             {metaIcon}
           </span>
-          <span className="truncate font-semibold text-ink-dim">
-            {metaText}
-          </span>
+          {/* Truncated visually (the card is a fixed width), but the
+              reason text is often the actual point of the card ("Because
+              you played X") — a hover tooltip is how the full text stays
+              readable without needing a taller card. */}
+          <Tooltip>
+            <TooltipTrigger
+              render={<span className="truncate font-semibold text-ink-dim" />}
+            >
+              {metaText}
+            </TooltipTrigger>
+            <TooltipContent>{metaText}</TooltipContent>
+          </Tooltip>
         </div>
       </div>
     </>
   );
 
   if (href) {
+    // An absolute URL here means "off the app" (e.g. a direct PS Store
+    // concept link) — open it in a new tab so clicking a card in a
+    // horizontally-scrolling row doesn't navigate the whole app away.
+    // Everything else is an internal /game/[id] route, kept as a normal
+    // in-app Link transition.
+    const isExternal = /^https?:\/\//.test(href);
+    if (isExternal) {
+      return (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cardClassName}
+        >
+          {body}
+        </a>
+      );
+    }
     return (
       <Link href={href} className={cardClassName}>
         {body}

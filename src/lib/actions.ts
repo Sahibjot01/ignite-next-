@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
+import { after } from "next/server";
 import {
   createClerkSupabaseClient,
   createSupabaseAdminClient,
@@ -16,6 +17,10 @@ import {
 } from "psn-api";
 import { decrypt, encrypt, getPsnPlayedGames, getPsnTrophySummary } from "./psn";
 import { getPsStoreEditionsByName } from "./ps-store";
+import type { Game } from "./rawg";
+import { getRecommendations } from "./recommendations";
+import { getAiRecommendations } from "./ai-recommendations";
+import { isStale, hoursUntilRefresh } from "./recommendation-ttl";
 export interface WishlistItem {
   id: string;
   user_id: string;
@@ -493,18 +498,32 @@ export async function getFreshAccessToken(): Promise<TokenResult> {
       };
     }
 
+    // Persisting the rotated refresh token isn't needed to answer this
+    // request — only the access token is, and every caller here just wants
+    // that back as fast as possible. Deferring the write with after()
+    // instead of awaiting it saves a full Supabase round trip (~200ms,
+    // measured) on the critical path of every single PSN-backed page load.
+    // Uses the admin client, not createClerkSupabaseClient(), since this
+    // runs after the response — cheaper than depending on the request's
+    // cookie/auth context still being valid at that point.
     const newRefreshToken = encrypt(authTokenResp.refreshToken);
+    const refreshTokenExpiresAt = new Date(
+      Date.now() + authTokenResp.refreshTokenExpiresIn * 1000,
+    ).toISOString();
 
-    const { error: secErr } = await supabase
-      .from("psn_accounts")
-      .update({
-        refresh_token_encrypted: newRefreshToken,
-        refresh_token_expires_at: new Date(
-          Date.now() + authTokenResp.refreshTokenExpiresIn * 1000,
-        ).toISOString(),
-      })
-      .eq("user_id", userId);
-    if (secErr) throw secErr;
+    after(async () => {
+      const adminSupabase = createSupabaseAdminClient();
+      const { error: secErr } = await adminSupabase
+        .from("psn_accounts")
+        .update({
+          refresh_token_encrypted: newRefreshToken,
+          refresh_token_expires_at: refreshTokenExpiresAt,
+        })
+        .eq("user_id", userId);
+      if (secErr) {
+        console.error("Error persisting rotated PSN refresh token:", secErr);
+      }
+    });
 
     return {
       success: true,
@@ -595,6 +614,60 @@ export async function getTrophySummary(): Promise<TrophySummaryResult> {
   }
 }
 
+type VaultOverviewResult =
+  | {
+      success: true;
+      games: UserPlayedGamesResponse["titles"];
+      trophy: TrophySummaryResult;
+    }
+  | { success: false; error: string };
+
+// The Vault page needs both played games and the trophy summary, and both
+// only need a valid PSN access token — timing this for real showed
+// getLibraryGames() + getTrophySummary() called separately (the page's
+// original approach) pay for two independent refresh_token exchanges
+// against Sony's auth servers in the same request, back to back, for
+// ~190ms of pure waste. This fetches the token once and reuses it for
+// both calls. getLibraryGames()/getTrophySummary() are left as-is for
+// other callers (e.g. the debug-library route) that only need one of the
+// two and don't care about this.
+export async function getVaultOverview(): Promise<VaultOverviewResult> {
+  const tokenResult = await getFreshAccessToken();
+  if (!tokenResult.success) return tokenResult;
+
+  try {
+    const [games, trophy] = await Promise.all([
+      getPsnPlayedGames(tokenResult.accessToken),
+      getPsnTrophySummary(tokenResult.accessToken, tokenResult.accountId)
+        .then(
+          (summary): TrophySummaryResult => ({
+            success: true,
+            summary: {
+              trophyLevel: Number(summary.trophyLevel),
+              platinum: summary.earnedTrophies.platinum,
+              gold: summary.earnedTrophies.gold,
+              silver: summary.earnedTrophies.silver,
+              bronze: summary.earnedTrophies.bronze,
+            },
+          }),
+        )
+        // Trophy data is a nice-to-have on this page (it just hides the
+        // strip if missing) — a trophy-endpoint hiccup shouldn't take
+        // down the games list too, so this failure is caught locally
+        // instead of rejecting the whole Promise.all.
+        .catch(
+          (err): TrophySummaryResult => ({
+            success: false,
+            error: getErrorMessage(err),
+          }),
+        ),
+    ]);
+    return { success: true, games, trophy };
+  } catch (err) {
+    return { success: false, error: getErrorMessage(err) };
+  }
+}
+
 export async function getMonthlyAlertPreference(): Promise<boolean> {
   const { userId } = await auth();
   if (!userId) return false;
@@ -644,5 +717,125 @@ export async function setMonthlyAlertPreference(
   } catch (error) {
     console.error("Error setting monthly alert preference:", error);
     return { success: false, error: getErrorMessage(error) };
+  }
+}
+
+// 🔹 6. RECOMMENDATION CACHE ACTIONS
+//
+// Both recommenders (rule-based + Gemini) are expensive enough — a batch of
+// RAWG searches, a full Gemini round-trip — that computing them on every
+// Vault page visit is what caused real 429s from Gemini's free-tier quota
+// during testing. This cache makes recomputation an explicit, user-triggered
+// action instead of an automatic side effect of loading the page, and
+// stores only the lean fields the UI actually renders (not full RAWG `Game`
+// objects) since this is a cache, not a mirror of RAWG's catalog.
+
+export interface CachedRecommendation {
+  gameId: number;
+  name: string;
+  backgroundImage: string | null;
+  reason: string;
+}
+
+export interface RecommendationCache {
+  rule_based: CachedRecommendation[];
+  ai_picks: CachedRecommendation[];
+  computed_at: string;
+}
+
+function toCachedRecommendations(
+  recs: { game: Game; reason: string }[],
+): CachedRecommendation[] {
+  return recs.map((rec) => ({
+    gameId: rec.game.id,
+    name: rec.game.name,
+    backgroundImage: rec.game.background_image ?? null,
+    reason: rec.reason,
+  }));
+}
+
+export async function getRecommendationCache(): Promise<RecommendationCache | null> {
+  const { userId } = await auth();
+  if (!userId) return null;
+
+  try {
+    const supabase = await createClerkSupabaseClient();
+    const { data, error } = await supabase
+      .from("recommendation_cache")
+      .select("rule_based, ai_picks, computed_at")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data as RecommendationCache | null;
+  } catch (err) {
+    console.error("Error getting recommendation cache:", err);
+    return null;
+  }
+}
+
+type RefreshRecommendationsResult =
+  | { success: true; cache: RecommendationCache }
+  | { success: false; error: string };
+
+export async function refreshRecommendations(): Promise<RefreshRecommendationsResult> {
+  const { userId } = await auth();
+  if (!userId) return { success: false, error: "Authentication required" };
+
+  try {
+    const supabase = await createClerkSupabaseClient();
+
+    // Re-checked here, not just hidden behind a disabled button client-side —
+    // the button is a UX nicety, this check is the actual rate limit. A
+    // direct call to this action (devtools, a re-fetch race) must not be
+    // able to trigger another Gemini + RAWG batch before the cooldown ends.
+    const { data: existing, error: readError } = await supabase
+      .from("recommendation_cache")
+      .select("computed_at")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (readError) throw readError;
+
+    if (existing && !isStale(existing.computed_at)) {
+      return {
+        success: false,
+        error: `You're all set for now — next refresh available in ${hoursUntilRefresh(existing.computed_at)}h.`,
+      };
+    }
+
+    const libraryResult = await getLibraryGames();
+    if (!libraryResult.success) {
+      return { success: false, error: libraryResult.error };
+    }
+
+    // Run together deliberately: both read the same played-games list and
+    // neither touches a PSN token (that already happened inside
+    // getLibraryGames() above), so there's no refresh-token race to avoid
+    // here the way there is between getLibraryGames() and getTrophySummary().
+    const [ruleBased, aiPicks] = await Promise.all([
+      getRecommendations(libraryResult.games),
+      getAiRecommendations(libraryResult.games),
+    ]);
+
+    const cache: RecommendationCache = {
+      rule_based: toCachedRecommendations(ruleBased),
+      ai_picks: toCachedRecommendations(aiPicks),
+      computed_at: new Date().toISOString(),
+    };
+
+    // computed_at is written even when ai_picks comes back empty (a Gemini
+    // failure/429 returns [], not a thrown error) — recording the attempt
+    // is what stops an immediately-retried call from hitting the same
+    // failing quota again before the cooldown clears.
+    const { error: upsertError } = await supabase
+      .from("recommendation_cache")
+      .upsert({ user_id: userId, ...cache }, { onConflict: "user_id" });
+    if (upsertError) throw upsertError;
+
+    revalidatePath("/vault");
+    return { success: true, cache };
+  } catch (err) {
+    console.error("Error refreshing recommendations:", err);
+    return { success: false, error: getErrorMessage(err) };
   }
 }

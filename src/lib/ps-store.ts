@@ -6,6 +6,17 @@ const PRICE_OPERATION_NAME = "productRetrieveForCtasWithPrice";
 const PRICE_QUERY_HASH = env.PS_STORE_PRICE_QUERY_HASH;
 const X_ALGOLIA_APPLICATION_ID = env.ALGOLIA_APPLICATION_ID;
 const X_ALGOLIA_API_KEY = env.ALGOLIA_API_KEY;
+
+// Sony's own concept id doubles as a direct storefront deep link — no
+// search/resolve step needed when the concept id is already known (e.g.
+// straight from psn-api's played-games response). Exported so callers
+// outside this module (played-games cards) don't duplicate the URL shape.
+export function buildConceptUrl(
+  conceptId: string | number,
+  locale: string = DEFAULT_LOCALE,
+): string {
+  return `https://store.playstation.com/${locale.toLowerCase()}/concept/${conceptId}`;
+}
 interface GraphQLResponse<T> {
   data: T;
   errors?: { message: string }[];
@@ -147,7 +158,7 @@ function buildProductPrice(
   return {
     purchasePrice: cheapestPurchaseCta?.price ?? null,
     subscriptionPrice: subscriptionCta?.price ?? null,
-    conceptUrl: `https://store.playstation.com/${locale.toLowerCase()}/concept/${productRetrieve.concept.id}`,
+    conceptUrl: buildConceptUrl(productRetrieve.concept.id, locale),
   };
 }
 
