@@ -10,11 +10,37 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import NotificationsBell from "./notifications-bell";
 
+function ProfileButton() {
+  return (
+    <div className="h-8 w-8 overflow-hidden rounded-full border-2 border-hairline-strong focus:outline-none">
+      <UserButton
+        appearance={{
+          elements: {
+            userButtonAvatarBox: "h-7 w-7",
+          },
+        }}
+      >
+        {/* Folded in here instead of a separate top-level gear icon — one
+            fewer icon competing for space on the mobile action row, and
+            "Settings lives in the profile menu" is the pattern basically
+            every app already uses, so nothing here needed re-teaching. */}
+        <UserButton.MenuItems>
+          <UserButton.Link
+            label="Settings"
+            labelIcon={<Settings className="h-4 w-4" />}
+            href="/settings"
+          />
+        </UserButton.MenuItems>
+      </UserButton>
+    </div>
+  );
+}
+
 export default function Navbar() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  const isOnVaultPage = pathname === "/library";
+  const isOnVaultPage = pathname === "/vault";
   const { isSignedIn } = useUser();
   const [searchQuery, setSearchQuery] = useState(
     searchParams.get("search") || "",
@@ -36,11 +62,23 @@ export default function Navbar() {
 
   return (
     <nav className="sticky top-0 z-40 w-full border-b border-hairline bg-void/80 backdrop-blur-md px-6 py-4 md:px-12">
-      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 sm:flex-row">
+      {/* Below `lg`, this renders as three explicit rows instead of trying
+          to cram everything into one: [logo, avatar] / [centered action
+          icons] / [search, full width]. Cramming all 6 nav items plus logo
+          and search into one wrapping row (the previous approach) still
+          left the action-icon row jammed flush against the edge with tiny
+          gaps once the search bar dropped below it — technically no
+          overflow, but visually lopsided and cluttered on an actual phone.
+          Splitting avatar (paired with the logo, like most apps keep
+          profile access immediately visible) from the other 3 action icons
+          (their own centered row) fixes both the crowding and the
+          alignment. At `lg` and up this collapses back into the original
+          single-row desktop layout via the hidden/lg:flex pairs below. */}
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-4 gap-y-3">
         {/* Logo and Title */}
         <div
           onClick={clearSearch}
-          className="flex cursor-pointer items-center gap-3"
+          className="order-1 flex shrink-0 cursor-pointer items-center gap-3"
         >
           <Image
             src="/icons/logo.svg"
@@ -54,12 +92,75 @@ export default function Navbar() {
           </h1>
         </div>
 
-        {/* Search Bar */}
+        {/* Row 1, mobile only: profile/sign-in sits next to the logo, same
+            as almost every app's mobile header. Its own lg:flex twin lives
+            at the end of the desktop cluster below. */}
+        <div className="order-2 flex shrink-0 items-center lg:hidden">
+          {isSignedIn ? (
+            <ProfileButton />
+          ) : (
+            <SignInButton mode="modal">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-ink-dim hover:bg-surface hover:text-ink rounded-full font-semibold"
+              >
+                Sign In
+              </Button>
+            </SignInButton>
+          )}
+        </div>
+
+        {/* Row 2, mobile only: the remaining action icons, centered as
+            their own group (not flush against an edge) and sized up
+            (icon-lg) since these are now the only things on their row and
+            can afford the extra tap-target size. "Free This Month" stays
+            visible whether signed in or not, same as the desktop cluster —
+            only Wishlist/Vault/notifications need an account. */}
+        <div className="order-3 flex w-full basis-full items-center justify-center gap-3 lg:hidden">
+          <Link href="/monthly-games">
+            <Button
+              variant="ghost"
+              size="icon-lg"
+              className="hover:bg-surface hover:text-ink rounded-full text-ink-dim"
+            >
+              <Gift className="h-5 w-5 text-coral" />
+            </Button>
+          </Link>
+          {isSignedIn && (
+            <>
+              <Link href="/wishlist">
+                <Button
+                  variant="ghost"
+                  size="icon-lg"
+                  className="hover:bg-surface hover:text-ink rounded-full text-ink-dim"
+                >
+                  <Heart className="h-5 w-5 text-coral fill-coral" />
+                </Button>
+              </Link>
+              <Link href="/vault">
+                <Button
+                  variant="ghost"
+                  size="icon-lg"
+                  className={`animate-vault-glow rounded-full text-ink-dim hover:bg-surface hover:text-ink ${
+                    isOnVaultPage ? "vault-glow-idle-off" : ""
+                  }`}
+                >
+                  <Library className="h-5 w-5 text-coral fill-coral" />
+                </Button>
+              </Link>
+              <NotificationsBell />
+            </>
+          )}
+        </div>
+
+        {/* Search Bar — full width on its own row below `lg`, inline
+            between logo and nav (its original spot) at `lg` and up. */}
         <form
           onSubmit={handleSearch}
-          className="relative flex w-full max-w-md items-center gap-2 sm:w-auto"
+          className="order-4 flex w-full items-center gap-2 lg:order-2 lg:w-auto lg:flex-1 lg:justify-center"
         >
-          <div className="relative w-full sm:w-80 md:w-96">
+          <div className="relative w-full lg:w-72 xl:w-96">
             <Input
               type="text"
               placeholder="Search games..."
@@ -77,17 +178,18 @@ export default function Navbar() {
           </Button>
         </form>
 
-        {/* Navigation & Auth */}
-        <div className="flex items-center gap-4">
+        {/* Desktop (`lg` and up) — the original single-row layout, with
+            labels back on and everything (including profile) in one
+            group. Hidden entirely below `lg`, where the two rows above
+            take over instead. */}
+        <div className="order-5 hidden shrink-0 items-center gap-4 lg:flex">
           <Link href="/monthly-games">
             <Button
               variant="ghost"
               className="flex items-center gap-2 hover:bg-surface hover:text-ink rounded-full text-ink-dim"
             >
               <Gift className="h-4 w-4 text-coral" />
-              <span className="hidden sm:inline font-semibold">
-                Free This Month
-              </span>
+              <span className="font-semibold">Free This Month</span>
             </Button>
           </Link>
           {isSignedIn ? (
@@ -98,43 +200,22 @@ export default function Navbar() {
                   className="flex items-center gap-2 hover:bg-surface hover:text-ink rounded-full text-ink-dim"
                 >
                   <Heart className="h-4 w-4 text-coral fill-coral" />
-                  <span className="hidden sm:inline font-semibold">
-                    Wishlist
-                  </span>
+                  <span className="font-semibold">Wishlist</span>
                 </Button>
               </Link>
-              <Link href="/library">
+              <Link href="/vault">
                 <Button
                   variant="ghost"
-                  className={`flex items-center gap-2 rounded-full text-ink-dim hover:bg-surface hover:text-ink ${
-                    isOnVaultPage ? "" : "animate-vault-glow"
+                  className={`animate-vault-glow flex items-center gap-2 rounded-full text-ink-dim hover:bg-surface hover:text-ink ${
+                    isOnVaultPage ? "vault-glow-idle-off" : ""
                   }`}
                 >
                   <Library className="h-4 w-4 text-coral fill-coral" />
-                  <span className="hidden sm:inline font-semibold">
-                    Vault
-                  </span>
+                  <span className="font-semibold">Vault</span>
                 </Button>
               </Link>
               <NotificationsBell />
-              <Link href="/settings">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="hover:bg-surface hover:text-ink rounded-full text-ink-dim"
-                >
-                  <Settings className="h-4 w-4" />
-                </Button>
-              </Link>
-              <div className="h-8 w-8 overflow-hidden rounded-full border-2 border-hairline-strong focus:outline-none">
-                <UserButton
-                  appearance={{
-                    elements: {
-                      userButtonAvatarBox: "h-7 w-7",
-                    },
-                  }}
-                />
-              </div>
+              <ProfileButton />
             </>
           ) : (
             <SignInButton mode="modal">

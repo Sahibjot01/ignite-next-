@@ -240,15 +240,18 @@
   animation: ignite-pulse 2.8s ease-in-out infinite;
 }
 
-/* "Border beam" for the Vault nav entrance — a thin starlight-blue arc
-   traveling around the border (the effect popularized by shadcn/Aceternity,
-   seen on Zustand/Drizzle/NextAuth's docs sites), not a diffuse RGB pulse.
-   Kept to this single moment as the app's one gradient-accent spot; coral
-   stays the real accent everywhere else. Implemented as an independent
-   ::before overlay (not the element's own `background`) so it never fights
-   with the button's own Tailwind background/hover classes, and masked down
-   to a ring via mask-composite so only the border thickness lights up. */
+/* "Border beam" — a thin arc traveling around the border. Two color
+   variants share one mechanism: .animate-vault-glow (platinum — Vault nav
+   + trophy strip) and .animate-recommend-glow (gold — recommendations
+   CTA). On hover, the arc stops and lights solid, and that ring breathes
+   via drop-shadow (follows the ring's masked shape, incl. the notch
+   corner) rather than a box-shadow on the parent. */
 @property --vault-beam-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+@property --recommend-beam-angle {
   syntax: "<angle>";
   inherits: false;
   initial-value: 0deg;
@@ -258,8 +261,31 @@
     --vault-beam-angle: 360deg;
   }
 }
-.animate-vault-glow {
+@keyframes recommend-beam-spin {
+  to {
+    --recommend-beam-angle: 360deg;
+  }
+}
+@keyframes glow-breathe {
+  0%,
+  100% {
+    opacity: 0.6;
+    filter: drop-shadow(0 0 2px var(--glow-color));
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 7px var(--glow-color))
+      drop-shadow(0 0 3px var(--glow-color));
+  }
+}
+
+.animate-vault-glow,
+.animate-recommend-glow {
   position: relative;
+}
+
+.animate-vault-glow {
+  --glow-color: var(--platinum);
 }
 .animate-vault-glow::before {
   content: "";
@@ -284,13 +310,60 @@
   mask-composite: exclude;
   animation: vault-beam-spin 6s linear infinite;
   pointer-events: none;
-  transition: background 0.25s ease;
+  transition: opacity 0.25s ease;
 }
-/* Hover: freeze the travel and light the whole ring solid, same starlight
-   color — a "fully charged" moment instead of just stopping mid-arc. */
+/* On the Vault page, idle beam is off (energy redirects to the trophy
+   strip) but hover still breathes via the shared :hover rules below. */
+.animate-vault-glow.vault-glow-idle-off::before {
+  animation: none;
+  opacity: 0;
+}
+
+.animate-recommend-glow {
+  --glow-color: #ffbd6b;
+}
+.animate-recommend-glow::before {
+  content: "";
+  position: absolute;
+  inset: -1.7px;
+  border-radius: inherit;
+  clip-path: inherit;
+  padding: 1.7px;
+  background: conic-gradient(
+    from var(--recommend-beam-angle),
+    transparent 0%,
+    transparent 75%,
+    #ffbd6b 85%,
+    #fff2d9 90%,
+    #ffbd6b 95%,
+    transparent 100%
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: recommend-beam-spin 6s linear infinite;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
 .animate-vault-glow:hover::before {
-  animation-play-state: paused;
   background: linear-gradient(135deg, var(--platinum), #fff, var(--platinum));
+  animation: glow-breathe 2.6s ease-in-out infinite;
+}
+.animate-recommend-glow:hover::before {
+  background: linear-gradient(135deg, #ffbd6b, #fff2d9, #ffbd6b);
+  animation: glow-breathe 2.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-vault-glow::before,
+  .animate-recommend-glow::before,
+  .animate-vault-glow:hover::before,
+  .animate-recommend-glow:hover::before {
+    animation: none;
+  }
 }
 
 /* Staggered reveal on load */

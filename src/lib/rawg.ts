@@ -135,28 +135,6 @@ export async function searchGames(query: string): Promise<Game[]> {
   return data.results;
 }
 
-// PSN titles have no RAWG id of their own — this resolves a batch of
-// game names to their RAWG id (when a match exists), by name search, run
-// in parallel and deduplicated so the same title is never looked up
-// twice. Used to make PSN-sourced cards (Most Played, Recently Played)
-// link somewhere real instead of being dead ends.
-export async function resolveGameIds(
-  names: string[],
-): Promise<Map<string, number>> {
-  const uniqueNames = [...new Set(names)];
-  const resolved = await Promise.all(
-    uniqueNames.map(async (name) => {
-      const hits = await searchGames(name);
-      return [name, hits[0]?.id] as const;
-    }),
-  );
-  const map = new Map<string, number>();
-  for (const [name, id] of resolved) {
-    if (id !== undefined) map.set(name, id);
-  }
-  return map;
-}
-
 // Candidate pool for recommendations — unowned PS titles matching the
 // genres the user actually plays most, sorted by rating like the rest
 // of the browse pages.

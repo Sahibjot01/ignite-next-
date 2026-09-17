@@ -26,8 +26,14 @@ export default function TrophySummaryStrip({
   const counts = { platinum, gold, silver, bronze };
 
   return (
-    <div className="animate-vault-glow clip-notch-md flex items-center gap-6 border border-hairline bg-surface px-6 py-4">
-      <div className="flex flex-col items-center border-r border-hairline pr-6">
+    // Below `sm`, the level block stacks on top (full width, divider
+    // below it) and the four grades become a 2x2 grid instead of one tight
+    // row — the single-row layout was overflowing its own clip-path on a
+    // real phone width (confirmed: the last grade's right edge measured
+    // ~26px past the strip's padded content edge at 375px), clipping the
+    // bronze count. `sm` and up is unchanged from before.
+    <div className="animate-vault-glow clip-notch-md flex flex-col gap-4 border border-hairline bg-surface px-6 py-4 sm:flex-row sm:items-center sm:gap-6">
+      <div className="flex items-center justify-between border-b border-hairline pb-4 sm:flex-col sm:justify-center sm:border-b-0 sm:border-r sm:pb-0 sm:pr-6">
         <span className="font-display text-2xl font-bold text-ink">
           {trophyLevel}
         </span>
@@ -35,7 +41,7 @@ export default function TrophySummaryStrip({
           Level
         </span>
       </div>
-      <div className="flex flex-1 items-center justify-between gap-4 sm:justify-start sm:gap-10">
+      <div className="grid grid-cols-2 gap-4 sm:flex sm:flex-1 sm:items-center sm:justify-start sm:gap-10">
         {GRADES.map((grade) => (
           <div key={grade.key} className="flex items-center gap-2">
             {grade.key === "platinum" ? (
