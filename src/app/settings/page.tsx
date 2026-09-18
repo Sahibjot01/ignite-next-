@@ -3,10 +3,12 @@ import { auth } from "@clerk/nextjs/server";
 import Navbar from "@/components/navbar";
 import PsnLinkCard from "@/components/psn-link-card";
 import MonthlyAlertsCard from "@/components/monthly-alerts-card";
+import CatalogAlertsCard from "@/components/catalog-alerts-card";
 import SectionHead from "@/components/section-head";
 import {
   getPsnConnectionStatus,
   getMonthlyAlertPreference,
+  getCatalogAlertPreference,
 } from "@/lib/actions";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +22,7 @@ export default async function SettingsPage() {
 
   const psnStatus = await getPsnConnectionStatus();
   const monthlyAlertEnabled = await getMonthlyAlertPreference();
+  const catalogAlertEnabled = await getCatalogAlertPreference();
 
   return (
     <div className="flex flex-col min-h-screen bg-void text-ink">
@@ -38,6 +41,7 @@ export default async function SettingsPage() {
         <div className="space-y-6">
           <PsnLinkCard initialStatus={psnStatus} />
           <MonthlyAlertsCard initialEnabled={monthlyAlertEnabled} />
+          <CatalogAlertsCard initialEnabled={catalogAlertEnabled} />
         </div>
       </main>
     </div>
