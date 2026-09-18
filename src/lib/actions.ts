@@ -720,6 +720,58 @@ export async function setMonthlyAlertPreference(
   }
 }
 
+// P5 Tier 2 — independent opt-in stored in the same table/row as the
+// Essential-games preference above, just a different column, so a user can
+// enable one alert type without the other.
+export async function getCatalogAlertPreference(): Promise<boolean> {
+  const { userId } = await auth();
+  if (!userId) return false;
+  try {
+    const supabase = await createClerkSupabaseClient();
+
+    const { data, error } = await supabase
+      .from("monthly_alert_preferences")
+      .select("catalog_alerts_enabled")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    return data?.catalog_alerts_enabled ?? false;
+  } catch (err) {
+    console.error("Error getting catalog alert preference:", err);
+    return false;
+  }
+}
+
+export async function setCatalogAlertPreference(
+  enabled: boolean,
+): Promise<{ success: boolean; error?: string }> {
+  const { userId } = await auth();
+  if (!userId) return { success: false, error: "Authentication required" };
+
+  try {
+    const supabase = await createClerkSupabaseClient();
+
+    const { error } = await supabase.from("monthly_alert_preferences").upsert(
+      {
+        user_id: userId,
+        catalog_alerts_enabled: enabled,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" },
+    );
+
+    if (error) throw error;
+
+    revalidatePath(`/settings`);
+    return { success: true };
+  } catch (error) {
+    console.error("Error setting catalog alert preference:", error);
+    return { success: false, error: getErrorMessage(error) };
+  }
+}
+
 // 🔹 6. RECOMMENDATION CACHE ACTIONS
 //
 // Both recommenders (rule-based + Gemini) are expensive enough — a batch of

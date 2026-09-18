@@ -3,9 +3,11 @@ import Navbar from "@/components/navbar";
 import SectionHead from "@/components/section-head";
 import MonthlyGamesAlertNudge from "@/components/monthly-games-alert-nudge";
 import EssentialGameCard from "@/components/essential-game-card";
+import CatalogChangeCard from "@/components/catalog-change-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCurrentEssentialGames } from "@/lib/ps-plus";
 import { getMonthlyAlertPreference } from "@/lib/actions";
+import { createSupabaseAdminClient } from "@/lib/supabaseClient";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +33,65 @@ export default function MonthlyGamesPage() {
         <Suspense fallback={<MonthlyGamesSkeleton />}>
           <MonthlyGamesContent />
         </Suspense>
+
+        <div className="mb-8 mt-16">
+          <SectionHead
+            eyebrow="PS Plus Extra / Premium"
+            title="Recently Changed in the Catalog"
+            sub="Every game that's joined or left the Extra/Premium catalog, most recent first — unfiltered, not just what's on your wishlist."
+            accent="platinum"
+          />
+        </div>
+
+        <Suspense fallback={<CatalogChangesSkeleton />}>
+          <CatalogChangesContent />
+        </Suspense>
       </main>
+    </div>
+  );
+}
+
+async function CatalogChangesContent() {
+  const supabase = createSupabaseAdminClient();
+  const { data: changes } = await supabase
+    .from("catalog_change_log")
+    .select("product_id, name, image_url, concept_url, change_type, detected_at")
+    .order("detected_at", { ascending: false })
+    .limit(12);
+
+  if (!changes || changes.length === 0) {
+    return (
+      <div className="clip-notch-md border border-dashed border-hairline-strong bg-surface/50 p-10 text-center">
+        <p className="text-sm text-ink-dim">
+          No catalog changes detected yet — this fills in as the daily check
+          finds real additions/removals, not backfilled from history.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {changes.map((change) => (
+        <CatalogChangeCard
+          key={`${change.product_id}-${change.detected_at}`}
+          name={change.name}
+          imageUrl={change.image_url}
+          conceptUrl={change.concept_url}
+          changeType={change.change_type as "added" | "removed"}
+          detectedAt={change.detected_at}
+        />
+      ))}
+    </div>
+  );
+}
+
+function CatalogChangesSkeleton() {
+  return (
+    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <EssentialCardSkeleton key={i} />
+      ))}
     </div>
   );
 }
