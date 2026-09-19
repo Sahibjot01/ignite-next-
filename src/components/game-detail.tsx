@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import {
   Star,
@@ -10,6 +10,8 @@ import {
   Plus,
   Loader2,
   Gamepad2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useUser, SignInButton } from "@clerk/nextjs";
 import { motion, type Variants } from "motion/react";
@@ -17,6 +19,7 @@ import { Game, GameScreenshot, imageResizeURL } from "@/lib/rawg";
 import { type PsStoreEdition } from "@/lib/ps-store";
 import { PriceAlert } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import PriceAlertForm from "./price-alert-form";
 import { useWishlistToggle } from "@/hooks/use-wishlist-toggle";
 
@@ -45,6 +48,43 @@ export default function GameDetail({
 }: GameDetailProps) {
   const { isSignedIn } = useUser();
   const [editionIndex, setEditionIndex] = useState(0);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const lightboxOpen = lightboxIndex !== null;
+  const swipeStart = useRef<{ x: number; y: number } | null>(null);
+  const screenshotCount = screenshots?.length ?? 0;
+
+  // A swipe is a mostly-horizontal drag past 50px; anything shorter (a tap
+  // on an arrow button bubbles through here too) or more vertical is ignored.
+  const handleSwipeEnd = (e: React.PointerEvent) => {
+    const start = swipeStart.current;
+    swipeStart.current = null;
+    if (!start || screenshotCount < 2) return;
+    const dx = e.clientX - start.x;
+    const dy = e.clientY - start.y;
+    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    const delta = dx < 0 ? 1 : -1;
+    setLightboxIndex((i) =>
+      i === null ? i : (i + delta + screenshotCount) % screenshotCount,
+    );
+  };
+
+  useEffect(() => {
+    if (!lightboxOpen || screenshotCount === 0) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight") {
+        setLightboxIndex((i) => (i === null ? i : (i + 1) % screenshotCount));
+      } else if (e.key === "ArrowLeft") {
+        setLightboxIndex((i) =>
+          i === null ? i : (i - 1 + screenshotCount) % screenshotCount,
+        );
+      }
+    };
+    // Capture phase on purpose: a real key press while the dialog has focus
+    // never bubbles up to window (the dialog stops it), so a bubble-phase
+    // listener only ever worked for synthetic events dispatched on window.
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [lightboxOpen, screenshotCount]);
   const psPrice = editions[editionIndex]?.price ?? null;
   // Alerts always track Standard (editions[0]) regardless of what's being
   // viewed here — per-edition alert tracking needs its own schema decision.
@@ -182,10 +222,13 @@ export default function GameDetail({
           <motion.div variants={itemVariants} className="space-y-4">
             <SectionLabel>Screenshots</SectionLabel>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {screenshots.map((screen) => (
-                <div
+              {screenshots.map((screen, i) => (
+                <button
+                  type="button"
                   key={screen.id}
-                  className="card-hover clip-notch-md relative aspect-[16/10] overflow-hidden border border-hairline bg-surface-2"
+                  onClick={() => setLightboxIndex(i)}
+                  aria-label={`Enlarge screenshot ${i + 1} of ${screenshots.length}`}
+                  className="card-hover clip-notch-md relative block aspect-[16/10] w-full cursor-zoom-in overflow-hidden border border-hairline bg-surface-2 focus-visible:outline-2 focus-visible:outline-coral"
                 >
                   <div className="card-hover-art relative h-full w-full">
                     <Image
@@ -196,7 +239,7 @@ export default function GameDetail({
                       className="object-cover"
                     />
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </motion.div>
@@ -369,6 +412,74 @@ export default function GameDetail({
             </motion.div>
           )}
       </div>
+
+      <Dialog
+        open={lightboxOpen}
+        onOpenChange={(open) => {
+          if (!open) setLightboxIndex(null);
+        }}
+      >
+        {lightboxIndex !== null && screenshots[lightboxIndex] && (
+          <DialogContent
+            overlayClassName="bg-black/85"
+            className="w-[95vw] max-w-[95vw] gap-3 border border-hairline bg-void p-3 sm:max-w-6xl"
+            closeButtonClassName="rounded-full bg-void/70 hover:bg-void max-sm:size-11 max-sm:[&_svg]:size-5"
+          >
+            <DialogTitle className="sr-only">
+              {`${game.name} screenshot ${lightboxIndex + 1} of ${screenshotCount}`}
+            </DialogTitle>
+            <div
+              className="relative aspect-video w-full touch-pan-y select-none"
+              onPointerDown={(e) => {
+                swipeStart.current = { x: e.clientX, y: e.clientY };
+              }}
+              onPointerUp={handleSwipeEnd}
+              onPointerCancel={() => {
+                swipeStart.current = null;
+              }}
+            >
+              <Image
+                draggable={false}
+                src={screenshots[lightboxIndex].image}
+                alt={`${game.name} screenshot ${lightboxIndex + 1}`}
+                fill
+                sizes="95vw"
+                className="object-contain"
+                priority
+              />
+              {screenshotCount > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setLightboxIndex(
+                        (lightboxIndex - 1 + screenshotCount) % screenshotCount,
+                      )
+                    }
+                    aria-label="Previous screenshot"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-void/70 p-2 text-ink transition-colors hover:bg-void"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setLightboxIndex((lightboxIndex + 1) % screenshotCount)
+                    }
+                    aria-label="Next screenshot"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-void/70 p-2 text-ink transition-colors hover:bg-void"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                </>
+              )}
+            </div>
+            <p className="text-center text-xs text-ink-faint">
+              {lightboxIndex + 1} / {screenshotCount}
+            </p>
+          </DialogContent>
+        )}
+      </Dialog>
     </motion.div>
   );
 }
