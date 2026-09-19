@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabaseClient";
 import { getErrorMessage } from "@/lib/utils";
+import { sendUserAlertEmail } from "@/lib/email";
 import {
   getCurrentEssentialGames,
   getExtraPremiumCatalog,
@@ -52,7 +53,7 @@ export async function GET(req: NextRequest) {
     if (essentialLineupChanged) {
       const { data: optedInUsers } = await supabase
         .from("monthly_alert_preferences")
-        .select("user_id")
+        .select("user_id, email_enabled")
         .eq("in_app_enabled", true);
 
       essentialAlertedUserCount = optedInUsers?.length ?? 0;
@@ -64,6 +65,20 @@ export async function GET(req: NextRequest) {
             game_id: null,
             message: `${game.name} is free this month with PS Plus Essential!`,
             external_url: game.conceptUrl,
+          });
+        }
+
+        if (user.email_enabled) {
+          await sendUserAlertEmail(user.user_id, {
+            subject: "Ignite: this month's free PS Plus games are live",
+            heading: "This month's PS Plus Essential games",
+            lines: games.map((game) => ({
+              text: game.name,
+              url: game.conceptUrl,
+            })),
+            ctaText: "See all monthly games",
+            ctaUrl:
+              "https://www.playstation.com/en-ca/ps-plus/games/?category=MONTHLY_GAMES",
           });
         }
       }
@@ -146,7 +161,7 @@ export async function GET(req: NextRequest) {
     if (!massChange && (catalogAdditions.length > 0 || catalogRemovals.length > 0)) {
       const { data: catalogOptedInUsers } = await supabase
         .from("monthly_alert_preferences")
-        .select("user_id")
+        .select("user_id, email_enabled")
         .eq("catalog_alerts_enabled", true);
 
       for (const user of catalogOptedInUsers ?? []) {
@@ -185,6 +200,26 @@ export async function GET(req: NextRequest) {
             external_url: match.game.conceptUrl,
           });
           catalogAlertCount++;
+        }
+
+        if (
+          user.email_enabled &&
+          (addedMatches.length > 0 || removedMatches.length > 0)
+        ) {
+          await sendUserAlertEmail(user.user_id, {
+            subject: "Ignite: a wishlisted game changed in the PS Plus catalog",
+            heading: "PS Plus catalog update for your wishlist",
+            lines: [
+              ...addedMatches.map((match) => ({
+                text: `${match.game.name} — joined the Extra/Premium catalog`,
+                url: match.game.conceptUrl,
+              })),
+              ...removedMatches.map((match) => ({
+                text: `${match.game.name} — left the Extra/Premium catalog`,
+                url: match.game.conceptUrl,
+              })),
+            ],
+          });
         }
       }
 
