@@ -60,6 +60,14 @@ export async function getExtraPremiumCatalog(
   return fetchCatalogList("plus-games-list", locale);
 }
 
+// Ubisoft+ Classics (~70 PS4-era Ubisoft games, included with Premium) —
+// same endpoint family, tracked alongside the Extra/Premium catalog.
+export async function getUbisoftClassicsCatalog(
+  locale = "en-ca",
+): Promise<RawGame[]> {
+  return fetchCatalogList("ubisoft-classics-list", locale);
+}
+
 // Lean shape stored in ps_plus_catalog_state between cron runs — just enough
 // to diff by productId and still have a name/link if a game disappears (a
 // removed game is gone from the live API response, so its name has to be

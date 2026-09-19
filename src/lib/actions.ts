@@ -772,6 +772,58 @@ export async function setCatalogAlertPreference(
   }
 }
 
+// Whether the alerts a user has turned on ALSO go to their account email.
+// Separate from the two alert-type toggles above (which decide which alerts
+// exist for them at all).
+export async function getEmailAlertPreference(): Promise<boolean> {
+  const { userId } = await auth();
+  if (!userId) return false;
+  try {
+    const supabase = await createClerkSupabaseClient();
+
+    const { data, error } = await supabase
+      .from("monthly_alert_preferences")
+      .select("email_enabled")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    return data?.email_enabled ?? false;
+  } catch (err) {
+    console.error("Error getting email alert preference:", err);
+    return false;
+  }
+}
+
+export async function setEmailAlertPreference(
+  enabled: boolean,
+): Promise<{ success: boolean; error?: string }> {
+  const { userId } = await auth();
+  if (!userId) return { success: false, error: "Authentication required" };
+
+  try {
+    const supabase = await createClerkSupabaseClient();
+
+    const { error } = await supabase.from("monthly_alert_preferences").upsert(
+      {
+        user_id: userId,
+        email_enabled: enabled,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" },
+    );
+
+    if (error) throw error;
+
+    revalidatePath(`/settings`);
+    return { success: true };
+  } catch (error) {
+    console.error("Error setting email alert preference:", error);
+    return { success: false, error: getErrorMessage(error) };
+  }
+}
+
 // 🔹 6. RECOMMENDATION CACHE ACTIONS
 //
 // Both recommenders (rule-based + Gemini) are expensive enough — a batch of
