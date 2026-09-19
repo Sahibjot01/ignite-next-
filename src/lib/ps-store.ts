@@ -1,4 +1,5 @@
 import { env } from "./env";
+import { pickBestHit } from "./ps-store-match";
 
 const ENDPOINT_URL = "https://web.np.playstation.com/api/graphql/v1/op";
 const DEFAULT_LOCALE = "en-CA";
@@ -63,6 +64,8 @@ interface ProductRetrieveResponse {
 interface PsStoreSearchHit {
   conceptId: string;
   skuIds: string[];
+  title?: string;
+  productName?: string;
 }
 
 interface SearchRetrieveResponse {
@@ -324,19 +327,20 @@ export async function searchPsStoreProducts(
 }
 
 // Resolves a RAWG game name straight to every real, purchasable PS Store
-// edition — the search-then-price chain callers actually want, rather than
-// making every caller repeat the "take the first hit's first skuId" step by
-// hand (which isn't reliably Standard — see resolveEditions).
+// edition — the search-then-price chain callers actually want. Picks the
+// search hit whose title best matches (see ps-store-match.ts) rather than
+// trusting the first result, and returns [] if nothing is a close match.
 export async function getPsStoreEditionsByName(
   gameName: string,
   locale: string = DEFAULT_LOCALE,
 ): Promise<PsStoreEdition[]> {
   try {
     const hits = await searchPsStoreProducts(gameName, locale);
-    if (hits.length === 0 || hits[0].skuIds.length === 0) {
+    const bestHit = pickBestHit(gameName, hits);
+    if (bestHit == null) {
       return [];
     }
-    return await resolveEditions(hits[0].skuIds, locale);
+    return await resolveEditions(bestHit.skuIds, locale);
   } catch (error) {
     console.error(`Error resolving PS Store editions for ${gameName}:`, error);
     return [];
