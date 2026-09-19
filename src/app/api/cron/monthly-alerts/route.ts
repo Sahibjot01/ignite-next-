@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
 
         if (user.email_enabled) {
           await sendUserAlertEmail(user.user_id, {
-            subject: "Ignite: this month's free PS Plus games are live",
+            subject: "Pixelhound: this month's free PS Plus games are live",
             heading: "This month's PS Plus Essential games",
             lines: games.map((game) => ({
               text: game.name,
@@ -207,7 +207,7 @@ export async function GET(req: NextRequest) {
           (addedMatches.length > 0 || removedMatches.length > 0)
         ) {
           await sendUserAlertEmail(user.user_id, {
-            subject: "Ignite: a wishlisted game changed in the PS Plus catalog",
+            subject: "Pixelhound: a wishlisted game changed in the PS Plus catalog",
             heading: "PS Plus catalog update for your wishlist",
             lines: [
               ...addedMatches.map((match) => ({

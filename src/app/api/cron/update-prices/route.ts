@@ -152,7 +152,7 @@ export async function GET(req: NextRequest) {
     ) {
       await sendAlertEmail({
         to: env.SUPERUSER_EMAIL,
-        subject: "Ignite: PS Store keys may have rotated",
+        subject: "Pixelhound: PS Store keys may have rotated",
         heading: "PS Store price lookups are failing systemically",
         body: `${rotationSuspectCount} of ${uniqueGames.length} games failed with an auth/GraphQL error in the last cron run. This usually means the persisted-query hash or Algolia keys need to be re-discovered.`,
       });

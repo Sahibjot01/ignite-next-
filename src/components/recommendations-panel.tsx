@@ -90,7 +90,7 @@ export default function RecommendationsPanel({
         <div className="animate-vault-glow clip-notch-md flex flex-col items-center gap-3 border border-hairline bg-surface px-6 py-10 text-center">
           <Sparkles className="h-6 w-6 animate-pulse text-platinum" />
           <p className="font-display text-sm font-medium text-ink">
-            Ignite is thinking about what you&apos;d enjoy next…
+            Pixelhound is sniffing out what you&apos;d enjoy next…
           </p>
           <p className="text-xs text-ink-faint">
             Comparing your play history against the PlayStation catalog —

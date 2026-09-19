@@ -82,13 +82,13 @@ export default function Navbar() {
         >
           <Image
             src="/icons/logo.svg"
-            alt="Ignite logo"
+            alt="Pixelhound logo"
             width={32}
             height={32}
             className="h-8 w-8 hover:rotate-12 transition-transform duration-300"
           />
           <h1 className="font-display text-xl font-bold uppercase tracking-wider text-ink">
-            Ignite<span className="text-coral">.</span>
+            Pixelhound<span className="text-coral">.</span>
           </h1>
         </div>
 
