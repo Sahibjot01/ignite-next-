@@ -4,12 +4,15 @@ import { getErrorMessage } from "@/lib/utils";
 import {
   getCurrentEssentialGames,
   getExtraPremiumCatalog,
+  getUbisoftClassicsCatalog,
   toCatalogEntries,
   matchCatalogToWishlist,
   type CatalogEntry,
 } from "@/lib/ps-plus";
 
 export const dynamic = "force-dynamic";
+
+const MASS_CHANGE_RATIO = 0.25;
 
 export async function GET(req: NextRequest) {
   // 🔹 1. Security Check: Verify CRON_SECRET headers
@@ -87,8 +90,21 @@ export async function GET(req: NextRequest) {
     // "leaving in N days" field has been found on this endpoint yet (see
     // PSN-API-DISCOVERY.md), so alerts are worded as "left", not "leaving
     // soon". Revisit if a future DevTools pass turns one up.
-    const catalogGames = await getExtraPremiumCatalog();
-    const currentCatalog = toCatalogEntries(catalogGames);
+    const [extraGames, ubisoftGames] = await Promise.all([
+      getExtraPremiumCatalog(),
+      getUbisoftClassicsCatalog(),
+    ]);
+    // An empty list here is a broken fetch, not a real "everything left" —
+    // throw before it can be diffed into ~70 fake removals.
+    if (extraGames.length === 0 || ubisoftGames.length === 0) {
+      throw new Error("A PS Plus catalog list came back empty");
+    }
+    // The two lists overlap slightly (confirmed against the real API: 2
+    // shared productIds) — dedupe so a game isn't logged twice.
+    const combined = new Map(
+      [...extraGames, ...ubisoftGames].map((g) => [g.productId, g]),
+    );
+    const currentCatalog = toCatalogEntries([...combined.values()]);
     const currentCatalogIds = new Set(currentCatalog.map((g) => g.productId));
 
     const { data: catalogState } = await supabase
@@ -110,7 +126,24 @@ export async function GET(req: NextRequest) {
 
     let catalogAlertCount = 0;
 
-    if (catalogAdditions.length > 0 || catalogRemovals.length > 0) {
+    // Mass-change guard. Caught for real on 2026-09-19: the live
+    // plus-games-list went from 468 titles to 49 overnight (all 49 were in
+    // the old list). Diffed blindly, that's ~420 fake "Left the catalog"
+    // rows in the public feed plus wishlist alerts, and the reverse spam if
+    // Sony flips back. A real day changes a handful of titles, not a
+    // quarter of the catalog — past that, skip everything (no log, no
+    // alerts, no state write) and say so, instead of trusting the fetch.
+    const changedCount = catalogAdditions.length + catalogRemovals.length;
+    const massChange =
+      lastSeenGames.length > 0 &&
+      changedCount > lastSeenGames.length * MASS_CHANGE_RATIO;
+    if (massChange) {
+      console.error(
+        `Catalog diff skipped: ${changedCount} changes vs ${lastSeenGames.length} stored titles looks like a bad/partial fetch, not real churn.`,
+      );
+    }
+
+    if (!massChange && (catalogAdditions.length > 0 || catalogRemovals.length > 0)) {
       const { data: catalogOptedInUsers } = await supabase
         .from("monthly_alert_preferences")
         .select("user_id")
@@ -192,8 +225,12 @@ export async function GET(req: NextRequest) {
       ? `Alerted ${essentialAlertedUserCount} user(s) about ${games.length} new Essential game(s).`
       : "No new Essential lineup.";
 
+    const catalogMessage = massChange
+      ? `Catalog diff SKIPPED: ${changedCount} changes vs ${lastSeenGames.length} stored titles looks like a bad fetch.`
+      : `Catalog: ${catalogAdditions.length} addition(s), ${catalogRemovals.length} removal(s), ${catalogAlertCount} wishlist-matched alert(s) sent.`;
+
     return NextResponse.json({
-      message: `${essentialMessage} Catalog: ${catalogAdditions.length} addition(s), ${catalogRemovals.length} removal(s), ${catalogAlertCount} wishlist-matched alert(s) sent.`,
+      message: `${essentialMessage} ${catalogMessage}`,
     });
   } catch (error) {
     console.error("Cron Job Error:", error);
