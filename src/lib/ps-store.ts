@@ -155,8 +155,21 @@ function buildProductPrice(
         )
       : null;
 
+  // Free-to-play games (Fortnite, Warframe, Apex, Aniimo, ...) have no
+  // ADD_TO_CART at all — Sony gives them a single DOWNLOAD cta priced "Free".
+  // Without this they fell through to "Not available on the PlayStation
+  // Store". Deliberately DOWNLOAD only and not tied to a subscription: a
+  // paid game's PS Plus trial (UPSELL_PS_PLUS_TRIAL) is also flagged free
+  // but isn't the game being free.
+  const freeDownloadCta = productRetrieve.webctas.find(
+    (cta) =>
+      cta.type === "DOWNLOAD" &&
+      cta.price.isFree &&
+      !cta.price.isTiedToSubscription,
+  );
+
   return {
-    purchasePrice: cheapestPurchaseCta?.price ?? null,
+    purchasePrice: cheapestPurchaseCta?.price ?? freeDownloadCta?.price ?? null,
     subscriptionPrice: subscriptionCta?.price ?? null,
     conceptUrl: buildConceptUrl(productRetrieve.concept.id, locale),
   };
