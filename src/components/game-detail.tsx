@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import {
   Star,
@@ -50,7 +50,23 @@ export default function GameDetail({
   const [editionIndex, setEditionIndex] = useState(0);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const lightboxOpen = lightboxIndex !== null;
+  const swipeStart = useRef<{ x: number; y: number } | null>(null);
   const screenshotCount = screenshots?.length ?? 0;
+
+  // A swipe is a mostly-horizontal drag past 50px; anything shorter (a tap
+  // on an arrow button bubbles through here too) or more vertical is ignored.
+  const handleSwipeEnd = (e: React.PointerEvent) => {
+    const start = swipeStart.current;
+    swipeStart.current = null;
+    if (!start || screenshotCount < 2) return;
+    const dx = e.clientX - start.x;
+    const dy = e.clientY - start.y;
+    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    const delta = dx < 0 ? 1 : -1;
+    setLightboxIndex((i) =>
+      i === null ? i : (i + delta + screenshotCount) % screenshotCount,
+    );
+  };
 
   useEffect(() => {
     if (!lightboxOpen || screenshotCount === 0) return;
@@ -407,12 +423,23 @@ export default function GameDetail({
           <DialogContent
             overlayClassName="bg-black/85"
             className="w-[95vw] max-w-[95vw] gap-3 border border-hairline bg-void p-3 sm:max-w-6xl"
+            closeButtonClassName="rounded-full bg-void/70 hover:bg-void max-sm:size-11 max-sm:[&_svg]:size-5"
           >
             <DialogTitle className="sr-only">
               {`${game.name} screenshot ${lightboxIndex + 1} of ${screenshotCount}`}
             </DialogTitle>
-            <div className="relative aspect-video w-full">
+            <div
+              className="relative aspect-video w-full touch-pan-y select-none"
+              onPointerDown={(e) => {
+                swipeStart.current = { x: e.clientX, y: e.clientY };
+              }}
+              onPointerUp={handleSwipeEnd}
+              onPointerCancel={() => {
+                swipeStart.current = null;
+              }}
+            >
               <Image
+                draggable={false}
                 src={screenshots[lightboxIndex].image}
                 alt={`${game.name} screenshot ${lightboxIndex + 1}`}
                 fill
