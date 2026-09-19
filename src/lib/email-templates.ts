@@ -63,7 +63,7 @@ export function renderAlertEmailHtml({
             <tr>
               <td style="padding: 28px 40px 4px; border-top: 3px solid ${CORAL}; border-radius: 8px 8px 0 0;">
                 <span style="font-family: ${FONT_STACK}; font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: ${CORAL_DARK};">
-                  Ignite
+                  Pixelhound
                 </span>
               </td>
             </tr>
@@ -86,7 +86,7 @@ export function renderAlertEmailHtml({
               <td style="padding: 32px 40px 28px;">
                 <hr style="border: none; border-top: 1px solid ${HAIRLINE}; margin: 0 0 16px;" />
                 <p style="margin: 0; font-family: ${FONT_STACK}; font-size: 11px; color: ${INK_DIM};">
-                  Sent by Ignite — your PlayStation tracker.
+                  Sent by Pixelhound — your PlayStation tracker.
                 </p>
               </td>
             </tr>

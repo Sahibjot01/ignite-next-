@@ -21,7 +21,7 @@ const chakraPetch = Chakra_Petch({
 });
 
 export const metadata: Metadata = {
-  title: "Ignite | Track Prices & Discover Games",
+  title: "Pixelhound | Track Prices & Discover Games",
   description: "Browse popular, upcoming, and new games, track deals, and set price drop alerts.",
 };
 

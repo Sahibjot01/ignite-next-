@@ -1,10 +1,10 @@
-# Ignite
+# Pixelhound
 
 A personal PlayStation companion app — tracks your PS4/PS5 wishlist, imports your real PSN library and playtime, and (in progress) watches for free/discounted games you'd actually want so you stop missing them.
 
 ## Why
 
-Sony's own PS App wishlist notifications are widely reported as unreliable — alerts that arrive late, only for some titles, or not at all. It's a common story: a game you wanted goes free or drops in price, and you only hear about it by chance — social media, a friend, anywhere but PlayStation's own tooling. Ignite is meant to actually solve that: watch PS Plus and PS Store pricing, cross-reference against what you've wishlisted and played, and surface the "you'd want this" moments Sony's app keeps missing.
+Sony's own PS App wishlist notifications are widely reported as unreliable — alerts that arrive late, only for some titles, or not at all. It's a common story: a game you wanted goes free or drops in price, and you only hear about it by chance — social media, a friend, anywhere but PlayStation's own tooling. Pixelhound is meant to actually solve that: watch PS Plus and PS Store pricing, cross-reference against what you've wishlisted and played, and surface the "you'd want this" moments Sony's app keeps missing.
 
 This isn't a generic multi-platform deals tracker — it's scoped tightly to PlayStation, built around a problem I've actually had.
 

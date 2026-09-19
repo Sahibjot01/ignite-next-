@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
     ) {
       await sendAlertEmail({
         to: env.SUPERUSER_EMAIL,
-        subject: "Ignite: PS Store keys may have rotated",
+        subject: "Pixelhound: PS Store keys may have rotated",
         heading: "The PS Store rotation probe failed",
         body: "A single known-good product lookup failed with an auth/GraphQL error — the persisted-query hash or Algolia keys likely need to be re-discovered.",
       });
