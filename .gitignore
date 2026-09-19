@@ -42,6 +42,7 @@ VAULT-PAGE-STREAMING.md
 P5-TIER2-CATALOG-ALERTS.md
 CATALOG-CHECK.md
 DEPLOY-CHECKLIST.md
+docs/
 
 # debug
 npm-debug.log*
