@@ -1,6 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "// note": "Hobby tier caps crons at once/day, 2 max — both slots are used. /api/cron/check-ps-store-rotation exists as dead code, not scheduled here, until a paid plan allows a real 3rd entry like { \"path\": \"/api/cron/check-ps-store-rotation\", \"schedule\": \"0 */6 * * *\" }.",
   "crons": [
     { "path": "/api/cron/update-prices", "schedule": "0 6 * * *" },
     { "path": "/api/cron/monthly-alerts", "schedule": "0 7 * * *" }
